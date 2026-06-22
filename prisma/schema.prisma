@@ -166,3 +166,43 @@ model UnknownQuestion {
   resolved  Boolean  @default(false) // 是否已处理/已补进知识库
   createdAt DateTime @default(now())
 }
+
+model CardCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  productType String
+  batchName   String?
+  status      String   @default("UNUSED") // UNUSED | SUBMITTED | RECHARGED | COMPLETED | INFO_INVALID | VOID
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  usedAt      DateTime?
+
+  redeem CardRedeem?
+
+  @@index([status, createdAt])
+  @@index([batchName])
+}
+
+model CardRedeem {
+  id                 String    @id @default(cuid())
+  status             String    @default("PENDING") // PENDING | PROCESSING | RECHARGED_PENDING_CANCEL | COMPLETED | INFO_INVALID | VOID
+  contactQq          String?
+  contactWechat      String?
+  cookieJsonCipher   String
+  cookieHeaderCipher String
+  cookieMeta         String    @default("{}") // JSON: count, domains, totalValueChars, formatStatus, issues
+  cookieClearedAt    DateTime?
+  clearAfterAt       DateTime?
+  renewalStatus      String    @default("PENDING_CANCEL") // PENDING_CANCEL | CANCELLED | NOT_NEEDED
+  adminNote          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  processedAt        DateTime?
+  completedAt        DateTime?
+
+  cardId String   @unique
+  card   CardCode @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([renewalStatus, createdAt])
+}

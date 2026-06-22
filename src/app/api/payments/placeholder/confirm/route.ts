@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   if (order.userId && (!user || (order.userId !== user.id && user.role !== "ADMIN"))) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
-  if (order.status !== "PENDING_PAYMENT") {
+  if (order.status !== "PENDING_PAYMENT" && order.status !== "PENDING") {
     return NextResponse.json({ ok: true, status: order.status });
   }
 

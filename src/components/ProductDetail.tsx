@@ -73,13 +73,17 @@ export function ProductDetail({
 
   function buyNow() {
     if (!variant) return;
-    addItem(buildItem(), qty);
-    router.push("/cart");
+    const params = new URLSearchParams({
+      product: product.name,
+      variant: variant.name,
+      qty: String(qty),
+    });
+    router.push("/redeem?" + params.toString());
   }
 
   return (
-    <div data-product-detail className="grid items-start gap-8 lg:grid-cols-[380px_minmax(0,1fr)] lg:gap-10">
-      <div data-product-image className={`card relative aspect-square w-full overflow-hidden ${product.image ? "!bg-white" : "bg-gradient-to-br from-[var(--surface-2)] to-[var(--surface)]"}`}>
+    <div data-product-detail className="grid items-stretch gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
+      <div data-product-image className={`card relative aspect-square w-full overflow-hidden shadow-sm ${product.image ? "!bg-white" : "bg-gradient-to-br from-[var(--surface-2)] to-[var(--surface)]"}`}>
         {product.image ? (
           <div className="absolute inset-0 p-12">
             <Image
@@ -95,7 +99,7 @@ export function ProductDetail({
         )}
       </div>
 
-      <div data-purchase-panel className="lg:flex lg:min-h-[380px] lg:flex-col">
+      <div data-purchase-panel className="card flex flex-col p-6 shadow-sm lg:min-h-[420px] lg:p-8">
         <h1 className="text-2xl font-bold">
           {splitName(product.name).main}
           {splitName(product.name).sub && (
@@ -108,9 +112,9 @@ export function ProductDetail({
           <p className="mt-2 text-sm text-[var(--muted)]">{product.description}</p>
         )}
 
-        <div className="mt-5">
+        <div className="mt-6">
           <div className="mb-2 text-sm text-[var(--muted)]">当前套餐</div>
-          <div className="inline-flex min-w-[180px] items-center justify-between gap-5 rounded-lg border border-[var(--primary)] bg-[var(--primary)]/10 px-4 py-3">
+          <div className="inline-flex min-w-[220px] items-center justify-between gap-8 rounded-xl border border-[var(--primary)] bg-[var(--primary)]/10 px-5 py-4">
             <div className="font-semibold">{variant?.name ?? "暂无套餐"}</div>
             <div className="font-bold text-[var(--accent)]">
               {variant ? formatMoney(variant.price, variant.currency) : "-"}
@@ -118,9 +122,9 @@ export function ProductDetail({
           </div>
         </div>
 
-        <div className="mt-5 flex items-center gap-3">
+        <div className="mt-6 flex items-center gap-3">
           <span className="text-sm text-[var(--muted)]">数量</span>
-          <div className="flex items-center rounded-lg border border-[var(--border)]">
+          <div className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="px-3 py-1.5">
               −
             </button>
@@ -131,15 +135,15 @@ export function ProductDetail({
           </div>
         </div>
 
-        <div className="mt-6 flex items-baseline gap-2">
+        <div className="mt-8 flex items-baseline gap-2">
           <span className="text-sm text-[var(--muted)]">合计</span>
           <span className="text-3xl font-extrabold text-[var(--accent)]">
             {variant ? formatMoney(variant.price * qty, variant.currency) : "-"}
           </span>
         </div>
 
-        <div data-purchase-actions className="mt-5 flex gap-3 lg:mt-auto">
-          <button onClick={addToCart} className="flex-1 rounded-lg border border-[var(--border)] py-3 font-semibold hover:bg-[var(--surface)]">
+        <div data-purchase-actions className="mt-8 flex gap-3 lg:mt-auto">
+          <button onClick={addToCart} className="flex-1 rounded-xl border border-[var(--border)] py-3 font-semibold hover:bg-[var(--surface-2)]">
             {added ? "✓ 已加入" : "加入购物车"}
           </button>
           <button onClick={buyNow} className="btn-primary flex-1 py-3">

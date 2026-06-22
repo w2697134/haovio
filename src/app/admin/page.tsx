@@ -6,12 +6,14 @@ import { StatusBadge } from "@/components/StatusBadge";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const [userCount, productCount, orderCount, pendingFulfill, paidAgg, recent] =
+  const [userCount, productCount, orderCount, pendingFulfill, pendingRedeems, pendingCancelRedeems, paidAgg, recent] =
     await Promise.all([
       prisma.user.count(),
       prisma.product.count(),
       prisma.order.count(),
       prisma.order.count({ where: { status: { in: ["PAID", "PROCESSING"] } } }),
+      prisma.cardRedeem.count({ where: { status: { in: ["PENDING", "PROCESSING"] } } }),
+      prisma.cardRedeem.count({ where: { status: "RECHARGED_PENDING_CANCEL" } }),
       prisma.order.aggregate({
         _sum: { totalAmount: true },
         where: { status: { in: ["PAID", "PROCESSING", "COMPLETED"] } },
@@ -27,6 +29,8 @@ export default async function AdminDashboard() {
     { label: "总营收(已付)", value: formatMoney(paidAgg._sum.totalAmount ?? 0), accent: true },
     { label: "订单总数", value: orderCount },
     { label: "待处理(已付款/充值中)", value: pendingFulfill, warn: pendingFulfill > 0 },
+    { label: "待兑换卡密", value: pendingRedeems, warn: pendingRedeems > 0 },
+    { label: "待取消续订", value: pendingCancelRedeems, warn: pendingCancelRedeems > 0 },
     { label: "商品 / 用户", value: `${productCount} / ${userCount}` },
   ];
 

@@ -20,6 +20,8 @@ export default async function AdminLayout({
         <nav className="ml-6 flex gap-1 text-sm">
           <Link href="/admin" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface)]">概览</Link>
           <Link href="/admin/orders" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface)]">订单</Link>
+          <Link href="/admin/card-codes" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface)]">卡密</Link>
+          <Link href="/admin/card-redeems" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface)]">兑换</Link>
           <Link href="/admin/products" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface)]">商品</Link>
           <Link href="/admin/questions" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface)]">问题</Link>
           <Link href="/admin/settings" className="rounded-lg px-3 py-1.5 hover:bg-[var(--surface)]">设置</Link>

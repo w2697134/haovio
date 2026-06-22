@@ -5,6 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PlaceholderPayActions } from "@/components/PlaceholderPayActions";
+import { AlipayPayActions } from "@/components/AlipayPayActions";
+import { isAlipayConfigured } from "@/lib/alipay";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,8 @@ export default async function PayPage({
   if (!order) notFound();
   if (order.userId && (!user || (order.userId !== user.id && user.role !== "ADMIN"))) notFound();
 
-  const isPendingPayment = order.status === "PENDING_PAYMENT";
+  const isPendingPayment = order.status === "PENDING_PAYMENT" || order.status === "PENDING";
+  const alipayConfigured = isAlipayConfigured();
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -111,7 +114,11 @@ export default async function PayPage({
 
           {isPendingPayment ? (
             <div className="mt-4">
-              <PlaceholderPayActions orderId={order.id} />
+              {alipayConfigured ? (
+                <AlipayPayActions orderId={order.id} />
+              ) : (
+                <PlaceholderPayActions orderId={order.id} />
+              )}
               <p className="mt-2 text-center text-xs text-[var(--muted)]">
                 现在是本地占位确认，正式收款方式确定后再接真实回执。
               </p>

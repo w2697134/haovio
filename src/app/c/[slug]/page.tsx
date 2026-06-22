@@ -29,7 +29,6 @@ export default async function CategoryPage({
         <h1 className="text-2xl font-bold">
           {category.icon} {category.name}
         </h1>
-        <p className="mt-1 text-[var(--muted)]">{category.description}</p>
       </div>
 
       {category.products.length === 0 ? (
@@ -42,7 +41,6 @@ export default async function CategoryPage({
                 <h2 className="font-semibold">
                   {product.slug.includes("shared") ? "共享合租" : "个人直充"}
                 </h2>
-                <p className="mt-1 text-sm text-[var(--muted)]">{product.description}</p>
               </div>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {product.variants.map((variant) => (
@@ -50,7 +48,6 @@ export default async function CategoryPage({
                     key={variant.id}
                     product={product}
                     variant={variant}
-                    note={product.slug.includes("shared") ? "3-4 人共用一个高级号" : "充到你的账号，也可新开单人号"}
                   />
                 ))}
               </div>

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { ProductDetail } from "@/components/ProductDetail";
@@ -53,17 +52,7 @@ export default async function ProductPage({
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <nav className="mb-5 text-sm text-[var(--muted)]">
-        <Link href="/" className="hover:text-[var(--foreground)]">首页</Link>
-        {" / "}
-        <Link href={`/c/${product.category.slug}`} className="hover:text-[var(--foreground)]">
-          {product.category.name}
-        </Link>
-        {" / "}
-        <span className="text-[var(--foreground)]">{product.name}</span>
-      </nav>
-
+    <div className="mx-auto max-w-6xl px-4 py-10">
       <ProductDetail product={detail} initialVariantId={initialVariantId} />
     </div>
   );

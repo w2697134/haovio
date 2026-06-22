@@ -22,17 +22,15 @@ export function Header({ user }: { user: SessionUser | null }) {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4">
-        <Link href="/" className="flex items-center gap-2 text-lg font-bold">
+        <div className="flex items-center gap-2 text-lg font-bold" aria-hidden="true">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-white ring-1 ring-[var(--border)]">
             <Image src="/images/haovio-logo.svg" alt="haovio" width={24} height={24} />
           </span>
-          <span>GPT 会员</span>
-        </Link>
+        </div>
 
-        <nav className="hidden md:flex items-center gap-5 text-sm text-[var(--muted)]">
-          <Link href="/" className="hover:text-[var(--foreground)]">首页</Link>
-          <Link href="/c/subscriptions" className="hover:text-[var(--foreground)]">会员订阅</Link>
-          <button type="button" onClick={openCustomerService} className="hover:text-[var(--foreground)]">
+        <nav className="hidden md:flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+          <Link href="/" className="rounded-lg px-3 py-2 hover:bg-[var(--surface)]">首页</Link>
+          <button type="button" onClick={openCustomerService} className="rounded-lg px-3 py-2 hover:bg-[var(--surface)]">
             在线客服
           </button>
         </nav>
