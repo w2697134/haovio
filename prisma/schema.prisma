@@ -1,0 +1,168 @@
+// 注意: SQLite 下 Prisma 不支持 enum / Json 原生类型,故用 String 存储,
+// 允许值在字段注释中说明,JSON 字段用 JSON.stringify 存字符串。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         String   @default("USER") // USER | ADMIN
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // 邀请优惠体系
+  inviteCode  String? @unique // 该用户的专属邀请码(注册时生成)
+  invitedById String? // 邀请人 userId
+  invitedBy   User?   @relation("UserInvites", fields: [invitedById], references: [id])
+  invitees    User[]  @relation("UserInvites")
+
+  orders  Order[]
+  coupons Coupon[] @relation("UserCoupons")
+}
+
+// 优惠券: 迎新券(被邀请人) 与 邀请奖励券(邀请人)
+model Coupon {
+  id           String    @id @default(cuid())
+  code         String    @unique // 券码, 展示用
+  kind         String // WELCOME(迎新券) | REFERRAL(邀请奖励券)
+  amount       Int // 面额(分)
+  minSpend     Int       @default(0) // 使用门槛: 订单原价不低于此金额(分)
+  status       String    @default("UNUSED") // UNUSED | USED | EXPIRED
+  sourceUserId String? // 该券因谁产生(REFERRAL 记录被邀请人 userId), 用于幂等
+  orderId      String? // 使用于哪个订单
+  expiresAt    DateTime? // 过期时间, null 表示永久有效
+  createdAt    DateTime  @default(now())
+  usedAt       DateTime?
+
+  userId String
+  user   User   @relation("UserCoupons", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  icon        String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  products Product[]
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  description  String?
+  image        String?
+  region       String   @default("Global")
+  deliveryType String   @default("MANUAL") // AUTO(卡密自动) | MANUAL(人工代充)
+  status       String   @default("ACTIVE") // ACTIVE | HIDDEN
+  // 下单时需要买家填写的代充账号字段, JSON 数组字符串:
+  // [{"key":"account","label":"游戏账号","required":true,"placeholder":"..."}]
+  accountFields String  @default("[]")
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  variants ProductVariant[]
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  name      String
+  price     Int // 售价, 以最小货币单位(分)存储
+  cost      Int     @default(0) // 成本(分), 仅后台可见
+  currency  String  @default("CNY")
+  stock     Int     @default(-1) // -1 表示不限量
+  sortOrder Int     @default(0)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  orderItems OrderItem[]
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  orderNo       String   @unique
+  status        String   @default("PENDING") // PENDING|PAID|PROCESSING|COMPLETED|CANCELLED|REFUNDED
+  totalAmount   Int // 实付总额(分) = 原价 - 优惠
+  discountAmount Int     @default(0) // 优惠金额(分)
+  couponId      String? // 使用的优惠券 id
+  currency      String   @default("CNY")
+  paymentMethod String? // MANUAL_PLACEHOLDER | future real payment provider
+  paidAt        DateTime?
+  accountInfo   String   @default("{}") // 买家填写的代充账号信息快照, JSON
+  contactEmail  String?
+  note          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id])
+
+  items    OrderItem[]
+  payments Payment[]
+}
+
+model OrderItem {
+  id          String @id @default(cuid())
+  productName String // 下单时商品名快照
+  variantName String // 规格名快照
+  unitPrice   Int // 单价(分)快照
+  quantity    Int    @default(1)
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+}
+
+model Payment {
+  id         String   @id @default(cuid())
+  provider   String   @default("MANUAL_PLACEHOLDER") // MANUAL_PLACEHOLDER | future real payment provider
+  status     String   @default("CREATED") // CREATED | SUCCEEDED | FAILED
+  externalId String?
+  amount     Int
+  currency   String   @default("CNY")
+  raw        String   @default("{}") // 第三方回调原始数据 JSON
+  createdAt  DateTime @default(now())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// 站点设置(单例, id 固定为 1): 客服联系方式与下单后指引
+model Setting {
+  id          Int      @id @default(1)
+  // 联系方式 JSON 数组: [{"platform":"QQ","account":"123456"}]
+  contacts    String   @default("[]")
+  qrUrl       String?
+  instruction String   @default("复制订单号,添加 QQ 确认办理与付款;完成后可加入 QQ 群处理售后。")
+  updatedAt   DateTime @updatedAt
+}
+
+// 客服答不上来的问题(知识库未覆盖),记录下来供后续补充知识库
+model UnknownQuestion {
+  id        String   @id @default(cuid())
+  question  String // 用户问的原话
+  resolved  Boolean  @default(false) // 是否已处理/已补进知识库
+  createdAt DateTime @default(now())
+}

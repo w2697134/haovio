@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+/output/
+/outputs/
+/tmp/
+/.playwright-cli/
 
 # next.js
 /.next/
@@ -29,9 +33,19 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.next-dev-*.log
 
 # env files (can opt-in for committing if needed)
 .env*
+
+# local agent/tooling
+/.claude/
+/.codex/
+
+# local databases and runtime files
+prisma/*.db
+prisma/*.db-journal
+logs/
 
 # vercel
 .vercel

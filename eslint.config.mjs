@@ -5,12 +5,19 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  // Override default ignores of eslint-config-next.
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
+    ".claude/**",
+    ".codex/**",
+    ".playwright-cli/**",
     "out/**",
+    "output/**",
+    "outputs/**",
     "build/**",
+    "tmp/**",
+    "logs/**",
+    "prisma/*.db",
+    "prisma/*.db-journal",
     "next-env.d.ts",
   ]),
 ]);
