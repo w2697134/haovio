@@ -117,8 +117,22 @@ export function CardRedeemRow({ redeem }: { redeem: AdminCardRedeem }) {
     <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-5">
-          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-[var(--primary)]/8 text-2xl ring-1 ring-[var(--primary)]/10">
-            🧾
+          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-7 w-7"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M8 4h8l2 2v14l-2-1-2 1-2-1-2 1-2-1-2 1V6l2-2Z" />
+              <path d="M9 9h6" />
+              <path d="M9 13h6" />
+              <path d="M9 17h4" />
+            </svg>
           </div>
           <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">

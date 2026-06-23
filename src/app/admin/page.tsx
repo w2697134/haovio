@@ -60,13 +60,13 @@ export default async function AdminHome({
           <input
             name="q"
             defaultValue={query}
-            className="input h-12 w-72 bg-white text-sm shadow-sm"
+            className="input h-12 !w-80 bg-white text-sm shadow-sm"
             placeholder="卡密 / QQ / 微信"
           />
-          <button className="btn-primary px-6 text-sm">搜</button>
+          <button className="btn-primary h-12 px-7 text-sm">搜</button>
           <a
             href={showDone ? "/admin" : "/admin?done=1"}
-            className="rounded-xl border border-[var(--border)] bg-white px-6 py-3 text-sm font-bold shadow-sm hover:bg-[var(--surface-2)]"
+            className="flex h-12 items-center whitespace-nowrap rounded-xl border border-[var(--border)] bg-white px-6 text-sm font-bold shadow-sm hover:bg-[var(--surface-2)]"
           >
             {showDone ? "待处理" : "已完成"}
           </a>
