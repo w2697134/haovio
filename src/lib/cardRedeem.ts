@@ -190,11 +190,12 @@ export function validateChatGptCookieJson(raw: string): {
 
     const item = entry as EditCookieItem;
     const name = typeof item.name === "string" ? item.name.trim() : "";
-    const value = typeof item.value === "string" ? item.value : "";
+    const hasValue = typeof item.value === "string";
+    const value: string = hasValue ? (item.value as string) : "";
     const domain = typeof item.domain === "string" ? normalizeDomain(item.domain) : "";
     const path = typeof item.path === "string" && item.path.trim() ? item.path.trim() : "/";
 
-    if (!name || !value || !domain) {
+    if (!name || !hasValue || !domain) {
       issues.push(`第 ${index + 1} 条缺少 name/value/domain`);
       return;
     }
