@@ -1,81 +1,120 @@
-import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { formatMoney } from "@/lib/money";
-import { StatusBadge } from "@/components/StatusBadge";
+import { parseCookieMeta } from "@/lib/cardRedeem";
+import { CardRedeemRow, type AdminCardRedeem } from "@/components/admin/CardRedeemRow";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard() {
-  const [userCount, productCount, orderCount, pendingFulfill, pendingRedeems, pendingCancelRedeems, paidAgg, recent] =
+const activeStatuses = ["PENDING", "PROCESSING", "RECHARGED_PENDING_CANCEL", "INFO_INVALID"];
+
+export default async function AdminHome({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; done?: string }>;
+}) {
+  const { q, done } = await searchParams;
+  const query = q?.trim() ?? "";
+  const showDone = done === "1";
+
+  const where: Prisma.CardRedeemWhereInput = showDone
+    ? { status: "COMPLETED" }
+    : { status: { in: activeStatuses } };
+
+  if (query) {
+    where.OR = [
+      { card: { code: { contains: query } } },
+      { contactQq: { contains: query } },
+      { contactWechat: { contains: query } },
+    ];
+  }
+
+  const [pendingCount, rechargedCount, invalidCount, completedCount, redeems] =
     await Promise.all([
-      prisma.user.count(),
-      prisma.product.count(),
-      prisma.order.count(),
-      prisma.order.count({ where: { status: { in: ["PAID", "PROCESSING"] } } }),
       prisma.cardRedeem.count({ where: { status: { in: ["PENDING", "PROCESSING"] } } }),
       prisma.cardRedeem.count({ where: { status: "RECHARGED_PENDING_CANCEL" } }),
-      prisma.order.aggregate({
-        _sum: { totalAmount: true },
-        where: { status: { in: ["PAID", "PROCESSING", "COMPLETED"] } },
-      }),
-      prisma.order.findMany({
+      prisma.cardRedeem.count({ where: { status: "INFO_INVALID" } }),
+      prisma.cardRedeem.count({ where: { status: "COMPLETED" } }),
+      prisma.cardRedeem.findMany({
+        where,
         orderBy: { createdAt: "desc" },
-        take: 6,
-        include: { items: true },
+        take: 80,
+        include: {
+          card: { select: { code: true, productType: true, batchName: true, status: true } },
+        },
       }),
     ]);
 
+  const data: AdminCardRedeem[] = redeems.map((r) => ({
+    id: r.id,
+    status: r.status,
+    contactQq: r.contactQq,
+    contactWechat: r.contactWechat,
+    cookieMeta: parseCookieMeta(r.cookieMeta),
+    cookieClearedAt: r.cookieClearedAt?.toISOString() ?? null,
+    clearAfterAt: r.clearAfterAt?.toISOString() ?? null,
+    renewalStatus: r.renewalStatus,
+    adminNote: r.adminNote,
+    createdAt: r.createdAt.toISOString(),
+    processedAt: r.processedAt?.toISOString() ?? null,
+    completedAt: r.completedAt?.toISOString() ?? null,
+    card: r.card,
+  }));
+
   const stats = [
-    { label: "总营收(已付)", value: formatMoney(paidAgg._sum.totalAmount ?? 0), accent: true },
-    { label: "订单总数", value: orderCount },
-    { label: "待处理(已付款/充值中)", value: pendingFulfill, warn: pendingFulfill > 0 },
-    { label: "待兑换卡密", value: pendingRedeems, warn: pendingRedeems > 0 },
-    { label: "待取消续订", value: pendingCancelRedeems, warn: pendingCancelRedeems > 0 },
-    { label: "商品 / 用户", value: `${productCount} / ${userCount}` },
+    { label: "待处理", value: pendingCount },
+    { label: "已充值", value: rechargedCount },
+    { label: "资料错误", value: invalidCount },
+    { label: "已完成", value: completedCount },
   ];
 
   return (
-    <div>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {stats.map((s) => (
-          <div key={s.label} className="card p-5">
-            <div className="text-sm text-[var(--muted)]">{s.label}</div>
-            <div
-              className={`mt-2 text-2xl font-extrabold ${
-                s.accent ? "text-[var(--accent)]" : s.warn ? "text-[var(--warning)]" : ""
-              }`}
-            >
-              {s.value}
-            </div>
+    <div className="space-y-5">
+      <section className="grid gap-3 sm:grid-cols-4">
+        {stats.map((stat) => (
+          <div key={stat.label} className="card p-4">
+            <div className="text-sm text-[var(--muted)]">{stat.label}</div>
+            <div className="mt-1 text-3xl font-extrabold">{stat.value}</div>
           </div>
         ))}
-      </div>
+      </section>
 
-      <div className="mt-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-bold">最近订单</h2>
-          <Link href="/admin/orders" className="text-sm text-[var(--accent)]">查看全部 →</Link>
+      <section className="card overflow-hidden">
+        <div className="border-b border-[var(--border)] p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-lg font-bold">{showDone ? "已完成" : "待处理"}</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                只处理客户提交的卡密、联系方式和 Cookie。
+              </p>
+            </div>
+
+            <form action="/admin" className="flex flex-wrap gap-2">
+              {showDone && <input type="hidden" name="done" value="1" />}
+              <input
+                name="q"
+                defaultValue={query}
+                className="input h-10 w-56 text-sm"
+                placeholder="搜卡密 / QQ / 微信"
+              />
+              <button className="btn-primary px-4 text-sm">搜索</button>
+              <a
+                href={showDone ? "/admin" : "/admin?done=1"}
+                className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-2)]"
+              >
+                {showDone ? "看待处理" : "看已完成"}
+              </a>
+            </form>
+          </div>
         </div>
-        <div className="card divide-y divide-[var(--border)]">
-          {recent.map((o) => (
-            <Link key={o.id} href={`/admin/orders`} className="flex items-center justify-between p-4 hover:bg-[var(--surface-2)]">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm text-[var(--muted)]">{o.orderNo}</span>
-                  <StatusBadge status={o.status} />
-                </div>
-                <div className="mt-1 text-sm text-[var(--muted)]">
-                  {o.items.map((i) => i.productName).join(", ")}
-                </div>
-              </div>
-              <span className="font-semibold text-[var(--accent)]">
-                {formatMoney(o.totalAmount, o.currency)}
-              </span>
-            </Link>
-          ))}
-          {recent.length === 0 && <p className="p-6 text-center text-[var(--muted)]">暂无订单</p>}
-        </div>
-      </div>
+
+        {data.length === 0 ? (
+          <p className="p-10 text-center text-[var(--muted)]">
+            {showDone ? "暂无已完成记录" : "暂无待处理记录"}
+          </p>
+        ) : (
+          data.map((redeem) => <CardRedeemRow key={redeem.id} redeem={redeem} />)
+        )}
+      </section>
     </div>
   );
 }

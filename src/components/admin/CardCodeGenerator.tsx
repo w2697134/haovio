@@ -3,11 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+const PRODUCT_TYPES = [
+  { value: "PLUS", label: "Plus" },
+  { value: "PRO_5X", label: "Pro 5x" },
+  { value: "PRO_20X", label: "Pro 20x" },
+];
+
 export function CardCodeGenerator() {
   const router = useRouter();
-  const [productType, setProductType] = useState("ChatGPT Plus");
-  const [batchName, setBatchName] = useState("");
+  const [productType, setProductType] = useState(PRODUCT_TYPES[0].value);
   const [count, setCount] = useState("10");
+  const [batchName, setBatchName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [codes, setCodes] = useState<string[]>([]);
@@ -15,18 +21,20 @@ export function CardCodeGenerator() {
   async function generate() {
     setError("");
     setCodes([]);
+
     const n = Number(count);
     if (!Number.isInteger(n) || n < 1 || n > 500) {
-      setError("生成数量必须是 1-500 的整数");
+      setError("数量必须是 1-500");
       return;
     }
+
     setLoading(true);
     try {
       const res = await fetch("/api/admin/card-codes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          productType: productType.trim(),
+          productType,
           batchName: batchName.trim() || undefined,
           count: n,
         }),
@@ -52,20 +60,33 @@ export function CardCodeGenerator() {
 
   return (
     <div className="card space-y-4 p-5">
-      <h2 className="font-bold">批量生成卡密</h2>
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-lg font-bold">生成卡密</h2>
+        <p className="text-sm text-[var(--muted)]">选择套餐和数量，生成后复制给客户。</p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-[180px_1fr_120px_140px]">
         <div>
-          <label className="mb-1 block text-sm text-[var(--muted)]">商品类型</label>
-          <input className="input" value={productType} onChange={(e) => setProductType(e.target.value)} />
+          <label className="mb-1 block text-sm font-medium">套餐</label>
+          <select className="input" value={productType} onChange={(event) => setProductType(event.target.value)}>
+            {PRODUCT_TYPES.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
         </div>
+
         <div>
-          <label className="mb-1 block text-sm text-[var(--muted)]">批次备注</label>
-          <input className="input" value={batchName} onChange={(e) => setBatchName(e.target.value)} placeholder="闲鱼批次" />
+          <label className="mb-1 block text-sm font-medium">批次</label>
+          <input className="input" value={batchName} onChange={(event) => setBatchName(event.target.value)} />
         </div>
+
         <div>
-          <label className="mb-1 block text-sm text-[var(--muted)]">数量</label>
-          <input className="input" value={count} onChange={(e) => setCount(e.target.value)} />
+          <label className="mb-1 block text-sm font-medium">数量</label>
+          <input className="input" value={count} onChange={(event) => setCount(event.target.value)} />
         </div>
+
         <div className="flex items-end">
           <button disabled={loading} onClick={generate} className="btn-primary w-full py-2.5">
             {loading ? "生成中..." : "生成"}
@@ -76,12 +97,14 @@ export function CardCodeGenerator() {
       {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
       {codes.length > 0 && (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm text-[var(--muted)]">本次生成 {codes.length} 个</span>
-            <button onClick={copyCodes} className="text-sm text-[var(--accent)]">复制全部</button>
+            <span className="text-sm font-semibold">本次生成 {codes.length} 个</span>
+            <button onClick={copyCodes} className="text-sm font-semibold text-[var(--accent)]">
+              复制全部
+            </button>
           </div>
-          <textarea readOnly className="input min-h-40 font-mono text-xs" value={codes.join("\n")} />
+          <textarea readOnly className="input min-h-40 font-mono text-sm" value={codes.join("\n")} />
         </div>
       )}
     </div>
