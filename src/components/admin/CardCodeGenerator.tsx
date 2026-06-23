@@ -59,15 +59,9 @@ export function CardCodeGenerator() {
   }
 
   return (
-    <div className="card space-y-4 p-5">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-bold">生成卡密</h2>
-        <p className="text-sm text-[var(--muted)]">选择套餐和数量，生成后复制给客户。</p>
-      </div>
-
+    <div className="card space-y-3 p-4">
       <div className="grid gap-3 md:grid-cols-[180px_1fr_120px_140px]">
         <div>
-          <label className="mb-1 block text-sm font-medium">套餐</label>
           <select className="input" value={productType} onChange={(event) => setProductType(event.target.value)}>
             {PRODUCT_TYPES.map((item) => (
               <option key={item.value} value={item.value}>
@@ -78,16 +72,19 @@ export function CardCodeGenerator() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium">批次</label>
-          <input className="input" value={batchName} onChange={(event) => setBatchName(event.target.value)} />
+          <input
+            className="input"
+            value={batchName}
+            onChange={(event) => setBatchName(event.target.value)}
+            placeholder="批次"
+          />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium">数量</label>
           <input className="input" value={count} onChange={(event) => setCount(event.target.value)} />
         </div>
 
-        <div className="flex items-end">
+        <div>
           <button disabled={loading} onClick={generate} className="btn-primary w-full py-2.5">
             {loading ? "生成中..." : "生成"}
           </button>
@@ -98,10 +95,10 @@ export function CardCodeGenerator() {
 
       {codes.length > 0 && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-semibold">本次生成 {codes.length} 个</span>
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span>{codes.length} 个</span>
             <button onClick={copyCodes} className="text-sm font-semibold text-[var(--accent)]">
-              复制全部
+              复制
             </button>
           </div>
           <textarea readOnly className="input min-h-40 font-mono text-sm" value={codes.join("\n")} />

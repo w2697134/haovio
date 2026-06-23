@@ -28,21 +28,14 @@ export default async function AdminHome({
     ];
   }
 
-  const [pendingCount, rechargedCount, invalidCount, completedCount, redeems] =
-    await Promise.all([
-      prisma.cardRedeem.count({ where: { status: { in: ["PENDING", "PROCESSING"] } } }),
-      prisma.cardRedeem.count({ where: { status: "RECHARGED_PENDING_CANCEL" } }),
-      prisma.cardRedeem.count({ where: { status: "INFO_INVALID" } }),
-      prisma.cardRedeem.count({ where: { status: "COMPLETED" } }),
-      prisma.cardRedeem.findMany({
+  const redeems = await prisma.cardRedeem.findMany({
         where,
         orderBy: { createdAt: "desc" },
         take: 80,
         include: {
           card: { select: { code: true, productType: true, batchName: true, status: true } },
         },
-      }),
-    ]);
+      });
 
   const data: AdminCardRedeem[] = redeems.map((r) => ({
     id: r.id,
@@ -60,57 +53,31 @@ export default async function AdminHome({
     card: r.card,
   }));
 
-  const stats = [
-    { label: "待处理", value: pendingCount },
-    { label: "已充值", value: rechargedCount },
-    { label: "资料错误", value: invalidCount },
-    { label: "已完成", value: completedCount },
-  ];
-
   return (
-    <div className="space-y-5">
-      <section className="grid gap-3 sm:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="card p-4">
-            <div className="text-sm text-[var(--muted)]">{stat.label}</div>
-            <div className="mt-1 text-3xl font-extrabold">{stat.value}</div>
-          </div>
-        ))}
-      </section>
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-lg font-bold">{showDone ? "已完成" : "待处理"}</div>
+        <form action="/admin" className="flex gap-2">
+          {showDone && <input type="hidden" name="done" value="1" />}
+          <input
+            name="q"
+            defaultValue={query}
+            className="input h-10 w-56 text-sm"
+            placeholder="卡密 / QQ / 微信"
+          />
+          <button className="btn-primary px-4 text-sm">搜</button>
+          <a
+            href={showDone ? "/admin" : "/admin?done=1"}
+            className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-2)]"
+          >
+            {showDone ? "待处理" : "已完成"}
+          </a>
+        </form>
+      </div>
 
       <section className="card overflow-hidden">
-        <div className="border-b border-[var(--border)] p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="text-lg font-bold">{showDone ? "已完成" : "待处理"}</h2>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                只处理客户提交的卡密、联系方式和 Cookie。
-              </p>
-            </div>
-
-            <form action="/admin" className="flex flex-wrap gap-2">
-              {showDone && <input type="hidden" name="done" value="1" />}
-              <input
-                name="q"
-                defaultValue={query}
-                className="input h-10 w-56 text-sm"
-                placeholder="搜卡密 / QQ / 微信"
-              />
-              <button className="btn-primary px-4 text-sm">搜索</button>
-              <a
-                href={showDone ? "/admin" : "/admin?done=1"}
-                className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-2)]"
-              >
-                {showDone ? "看待处理" : "看已完成"}
-              </a>
-            </form>
-          </div>
-        </div>
-
         {data.length === 0 ? (
-          <p className="p-10 text-center text-[var(--muted)]">
-            {showDone ? "暂无已完成记录" : "暂无待处理记录"}
-          </p>
+          <p className="p-10 text-center text-[var(--muted)]">暂无</p>
         ) : (
           data.map((redeem) => <CardRedeemRow key={redeem.id} redeem={redeem} />)
         )}

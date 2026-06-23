@@ -22,10 +22,6 @@ export default async function AdminCardCodesPage() {
       <CardCodeGenerator />
 
       <section className="card overflow-hidden">
-        <div className="border-b border-[var(--border)] p-4">
-          <h2 className="text-lg font-bold">最近卡密</h2>
-        </div>
-
         {codes.length === 0 ? (
           <p className="p-10 text-center text-[var(--muted)]">暂无卡密</p>
         ) : (
@@ -36,7 +32,6 @@ export default async function AdminCardCodesPage() {
                   <th className="px-4 py-3">卡密</th>
                   <th className="px-4 py-3">套餐</th>
                   <th className="px-4 py-3">状态</th>
-                  <th className="px-4 py-3">批次</th>
                   <th className="px-4 py-3">联系方式</th>
                   <th className="px-4 py-3">时间</th>
                 </tr>
@@ -49,7 +44,6 @@ export default async function AdminCardCodesPage() {
                     <td className="px-4 py-3">
                       {CARD_CODE_STATUS_LABEL[card.status as keyof typeof CARD_CODE_STATUS_LABEL] ?? card.status}
                     </td>
-                    <td className="px-4 py-3 text-[var(--muted)]">{card.batchName ?? "-"}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">
                       {card.redeem
                         ? [
