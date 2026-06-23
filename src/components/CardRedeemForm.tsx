@@ -91,7 +91,7 @@ export function CardRedeemForm({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">账号</label>
+          <label className="mb-1 block text-sm font-medium">QQ/微信号</label>
           <input
             className="input"
             value={contactValue}
