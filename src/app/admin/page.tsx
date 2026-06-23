@@ -54,32 +54,32 @@ export default async function AdminHome({
   }));
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-lg font-bold">{showDone ? "已完成" : "待处理"}</div>
-        <form action="/admin" className="flex gap-2">
+    <div>
+      <form action="/admin" className="mb-6 flex justify-end gap-3">
           {showDone && <input type="hidden" name="done" value="1" />}
           <input
             name="q"
             defaultValue={query}
-            className="input h-10 w-56 text-sm"
+            className="input h-12 w-72 bg-white text-sm shadow-sm"
             placeholder="卡密 / QQ / 微信"
           />
-          <button className="btn-primary px-4 text-sm">搜</button>
+          <button className="btn-primary px-6 text-sm">搜</button>
           <a
             href={showDone ? "/admin" : "/admin?done=1"}
-            className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-2)]"
+            className="rounded-xl border border-[var(--border)] bg-white px-6 py-3 text-sm font-bold shadow-sm hover:bg-[var(--surface-2)]"
           >
             {showDone ? "待处理" : "已完成"}
           </a>
-        </form>
-      </div>
+      </form>
 
-      <section className="card overflow-hidden">
+      <section className="card p-7">
+        <h2 className="mb-5 text-2xl font-extrabold">{showDone ? "已完成" : "待处理"}</h2>
         {data.length === 0 ? (
           <p className="p-10 text-center text-[var(--muted)]">暂无</p>
         ) : (
-          data.map((redeem) => <CardRedeemRow key={redeem.id} redeem={redeem} />)
+          <div className="space-y-4">
+            {data.map((redeem) => <CardRedeemRow key={redeem.id} redeem={redeem} />)}
+          </div>
         )}
       </section>
     </div>

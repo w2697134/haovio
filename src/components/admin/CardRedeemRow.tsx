@@ -114,9 +114,13 @@ export function CardRedeemRow({ redeem }: { redeem: AdminCardRedeem }) {
   const cookieOk = redeem.cookieMeta.formatStatus === "VALID_FORMAT";
 
   return (
-    <div className="border-b border-[var(--border)] p-4 last:border-b-0">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-        <div className="min-w-0 flex-1">
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+        <div className="flex min-w-0 flex-1 items-center gap-5">
+          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-[var(--primary)]/8 text-2xl ring-1 ring-[var(--primary)]/10">
+            🧾
+          </div>
+          <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm font-extrabold">{redeem.card.code}</span>
             <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold">
@@ -127,8 +131,11 @@ export function CardRedeemRow({ redeem }: { redeem: AdminCardRedeem }) {
             </span>
           </div>
           <div className="mt-1 text-sm text-[var(--muted)]">
-            {contact || "-"} · Cookie {cookieOk ? "正常" : "异常"} ·{" "}
+            {contact || "-"}
+            {!cookieOk ? " · Cookie 异常" : ""}
+            {" · "}
             {new Date(redeem.createdAt).toLocaleString("zh-CN")}
+          </div>
           </div>
         </div>
 
