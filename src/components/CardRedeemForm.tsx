@@ -78,24 +78,19 @@ export function CardRedeemForm({
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
-        <div>
-          <label className="mb-1 block text-sm font-medium">联系方式</label>
+      <div>
+        <label className="mb-1 block text-sm font-medium">联系方式</label>
+        <div className="flex">
           <select
-            className="input"
+            className="input !w-36 rounded-r-none border-r-0"
             value={contactType}
             onChange={(e) => setContactType(e.target.value as "QQ" | "WECHAT")}
           >
             <option value="QQ">QQ</option>
             <option value="WECHAT">微信</option>
           </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            {contactType === "QQ" ? "QQ号" : "微信号"}
-          </label>
           <input
-            className="input"
+            className="input flex-1 rounded-l-none"
             value={contactValue}
             onChange={(e) => setContactValue(e.target.value)}
           />
