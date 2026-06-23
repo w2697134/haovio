@@ -188,23 +188,13 @@ export function CardRedeemRow({ redeem }: { redeem: AdminCardRedeem }) {
       {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
 
       {showSecret && secret && (
-        <div className="mt-3 grid gap-3 rounded-xl bg-[var(--surface-2)] p-3 lg:grid-cols-2">
-          <div>
-            <div className="mb-1 flex justify-end">
-              <button onClick={() => copy(secret.cookieHeader)} className="text-sm font-semibold text-[var(--accent)]">
-                复制
-              </button>
-            </div>
-            <textarea readOnly className="input min-h-28 font-mono text-xs" value={secret.cookieHeader} />
+        <div className="mt-3 rounded-xl bg-[var(--surface-2)] p-3">
+          <div className="mb-1 flex justify-end">
+            <button onClick={() => copy(secret.cookieJson)} className="text-sm font-semibold text-[var(--accent)]">
+              复制
+            </button>
           </div>
-          <div>
-            <div className="mb-1 flex justify-end">
-              <button onClick={() => copy(secret.cookieJson)} className="text-sm font-semibold text-[var(--accent)]">
-                复制
-              </button>
-            </div>
-            <textarea readOnly className="input min-h-28 font-mono text-xs" value={secret.cookieJson} />
-          </div>
+          <textarea readOnly className="input min-h-36 font-mono text-xs" value={secret.cookieJson} />
         </div>
       )}
     </div>
