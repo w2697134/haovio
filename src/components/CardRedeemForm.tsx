@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type ResultState =
   | { ok: false; message: string }
-  | { ok: true; message: string; productType?: string; cookieCount?: number };
+  | { ok: true; message: string };
 
 export function CardRedeemForm({
   product,
@@ -44,9 +44,7 @@ export function CardRedeemForm({
       }
       setResult({
         ok: true,
-        message: "提交成功，后台会按队列处理。请保持 QQ/微信可联系。",
-        productType: data.productType,
-        cookieCount: data.cookieMeta?.count,
+        message: "提交成功",
       });
       setCode("");
       setContactValue("");
@@ -116,12 +114,6 @@ export function CardRedeemForm({
           }
         >
           <div>{result.message}</div>
-          {result.ok && (
-            <div className="mt-1 text-xs opacity-90">
-              {result.productType ? "商品：" + result.productType + " · " : ""}
-              {typeof result.cookieCount === "number" ? "Cookie 条数：" + result.cookieCount : ""}
-            </div>
-          )}
         </div>
       )}
 
