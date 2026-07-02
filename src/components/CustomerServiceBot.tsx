@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { Contact } from "@/lib/settings";
-import { WELCOME, FALLBACK, matchKb } from "@/lib/kb";
+import { WELCOME, FALLBACK } from "@/lib/kb";
 import { CloseIcon, PlatformIcon } from "@/components/icons";
 import { listenClientEvent } from "@/lib/clientEvents";
 
@@ -40,21 +40,10 @@ export function CustomerServiceBot({ contacts }: { contacts: Contact[] }) {
     return listenClientEvent("openCustomerService", openChat);
   }, []);
 
-  function localAnswer(q: string) {
-    const entry = matchKb(q) ?? FALLBACK;
-    setMsgs((prev) => [...prev, { role: "bot", text: entry.answer, contact: entry.showContact }]);
-  }
-
   async function ask(text: string) {
     const q = text.trim();
     if (!q || loading) return;
     setInput("");
-
-    const local = matchKb(q);
-    if (local?.id === "contact") {
-      setMsgs((prev) => [...prev, { role: "user", text: q }, { role: "bot", text: local.answer, contact: true }]);
-      return;
-    }
 
     const convo: Msg[] = [...msgs, { role: "user", text: q }];
     setMsgs(convo);
@@ -76,10 +65,10 @@ export function CustomerServiceBot({ contacts }: { contacts: Contact[] }) {
           { role: "bot", text: reply, contact: Boolean(data.contact) || /QQ|人工|客服|订单号/.test(reply) },
         ]);
       } else {
-        localAnswer(q);
+        setMsgs((prev) => [...prev, { role: "bot", text: FALLBACK.answer, contact: FALLBACK.showContact }]);
       }
     } catch {
-      localAnswer(q);
+      setMsgs((prev) => [...prev, { role: "bot", text: FALLBACK.answer, contact: FALLBACK.showContact }]);
     } finally {
       setLoading(false);
     }

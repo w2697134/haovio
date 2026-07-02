@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { buildSystemPrompt, matchKb } from "@/lib/kb";
+import { buildSystemPrompt } from "@/lib/kb";
 
 // —— 简单的内存防刷:每 IP 在窗口内限若干次(单进程部署足够)——
 const WINDOW_MS = 30_000;
@@ -50,17 +50,7 @@ export async function POST(req: Request) {
   }
 
   const lastUser = [...parsed.data.messages].reverse().find((m) => m.role === "user");
-  const local = lastUser ? matchKb(lastUser.content) : null;
-  if (local) {
-    return NextResponse.json({
-      reply: local.answer,
-      contact: Boolean(local.showContact),
-      source: "kb",
-    });
-  }
-
   const apiKey = process.env.DEEPSEEK_API_KEY;
-  // 没配置密钥 → 让前端回退到本地知识库
   if (!apiKey) {
     return NextResponse.json({ fallback: true, error: "AI 未配置" }, { status: 200 });
   }
@@ -76,7 +66,7 @@ export async function POST(req: Request) {
   const system = buildSystemPrompt(settings.contacts);
 
   const baseUrl = process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com";
-  const model = process.env.DEEPSEEK_MODEL ?? "deepseek-v4-flash";
+  const model = process.env.DEEPSEEK_MODEL ?? "flash";
 
   try {
     const controller = new AbortController();
