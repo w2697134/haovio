@@ -41,7 +41,7 @@ export default async function RedeemPage({
   const supportContact =
     settings.contacts.find((contact) => contact.platform === "QQ群") ??
     settings.contacts.find((contact) => contact.platform === "QQ");
-  const requiresSession = !variant.product.slug.includes("shared");
+  const allowsSessionDelivery = !variant.product.slug.includes("shared");
 
   return (
     <div className="relative px-4 py-10">
@@ -57,11 +57,9 @@ export default async function RedeemPage({
           productName={variant.product.name}
           variantName={variant.name}
           pointsCost={pointsForPrice(variant.price)}
-          priceCents={variant.price}
-          currency={variant.currency}
           balance={user.pointsBalance}
           supportContact={supportContact}
-          requiresSession={requiresSession}
+          allowsSessionDelivery={allowsSessionDelivery}
         />
       </div>
     </div>

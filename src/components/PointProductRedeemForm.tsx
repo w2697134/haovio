@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
-import { formatMoney } from "@/lib/money";
 
 type ResultState =
   | { ok: false; message: string }
@@ -66,51 +65,48 @@ export function PointProductRedeemForm({
   productName,
   variantName,
   pointsCost,
-  priceCents,
-  currency,
   balance,
   supportContact,
-  requiresSession,
+  allowsSessionDelivery,
 }: {
   variantId: string;
   productName: string;
   variantName: string;
   pointsCost: number;
-  priceCents: number;
-  currency: string;
   balance: number;
   supportContact?: SupportContact | null;
-  requiresSession: boolean;
+  allowsSessionDelivery: boolean;
 }) {
   const router = useRouter();
   const [contactType, setContactType] = useState<"QQ" | "WECHAT">("QQ");
   const [contactValue, setContactValue] = useState("");
   const [sessionJson, setSessionJson] = useState("");
   const [sessionCheck, setSessionCheck] = useState<CookieCheckState | null>(null);
+  const [deliveryMode, setDeliveryMode] = useState<"COOKIE" | "MANUAL">(
+    allowsSessionDelivery ? "COOKIE" : "MANUAL"
+  );
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [result, setResult] = useState<ResultState | null>(null);
 
   const insufficient = balance < pointsCost;
   const buttonBusy = loading || redirecting;
+  const activeDeliveryMode = allowsSessionDelivery ? deliveryMode : "MANUAL";
+  const isSessionDelivery = activeDeliveryMode === "COOKIE";
   const isQqGroup = supportContact?.platform === "QQ群";
   const handlerName = isQqGroup ? "群主" : "客服";
   const supportTitle = `提交后会立刻生成订单号，请复制给${handlerName}处理`;
   const supportLabel = isQqGroup ? "QQ群" : supportContact?.platform ?? "QQ";
-  const priceLabel = formatMoney(priceCents, currency);
-
-  function checkSession() {
-    if (buttonBusy) return;
-    setSessionCheck(parseSessionAccount(sessionJson));
-  }
 
   async function submit() {
     if (buttonBusy) return;
-    if (requiresSession && !sessionCheck?.ok) {
-      checkSession();
-      return;
-    }
     if (insufficient) return;
+
+    const checkedSession = isSessionDelivery ? parseSessionAccount(sessionJson) : null;
+    if (checkedSession) {
+      setSessionCheck(checkedSession);
+      if (!checkedSession.ok) return;
+    }
 
     setResult(null);
     setLoading(true);
@@ -123,9 +119,9 @@ export function PointProductRedeemForm({
           variantId,
           contactQq: contactType === "QQ" ? contactValue.trim() || undefined : undefined,
           contactWechat: contactType === "WECHAT" ? contactValue.trim() || undefined : undefined,
-          deliveryMode: requiresSession ? "COOKIE" : "MANUAL",
-          cookieJson: requiresSession ? sessionJson : undefined,
-          cookieAccount: requiresSession && sessionCheck?.ok ? sessionCheck.account : undefined,
+          deliveryMode: activeDeliveryMode,
+          cookieJson: isSessionDelivery ? sessionJson : undefined,
+          cookieAccount: isSessionDelivery && checkedSession?.ok ? checkedSession.account : undefined,
         }),
       });
       const data = await res.json();
@@ -149,9 +145,8 @@ export function PointProductRedeemForm({
   function primaryButtonText() {
     if (redirecting) return "正在提交...";
     if (loading) return "提交中...";
-    if (requiresSession && !sessionCheck?.ok) return "识别账号";
     if (insufficient) return "余额不足";
-    return `确认购买 ${priceLabel}`;
+    return "提交订单";
   }
 
   return (
@@ -196,45 +191,80 @@ export function PointProductRedeemForm({
 
         <div>
           <label className="mb-2 block text-sm font-semibold">处理方式</label>
-          {requiresSession ? (
+          {allowsSessionDelivery ? (
             <div className="rounded-xl border border-[var(--primary)] bg-indigo-50 p-4 text-sm">
-              <div className="font-semibold text-[var(--primary)]">Session 提交</div>
-              <p className="mt-2 text-[var(--foreground)]">
-                个人直充需要提交完整 ChatGPT Session，识别账号后再生成订单。
-              </p>
-              <textarea
-                className="input mt-3 min-h-40 bg-white font-mono text-xs"
-                placeholder="粘贴整段 ChatGPT Session JSON"
-                value={sessionJson}
-                onChange={(event) => {
-                  setSessionJson(event.target.value);
-                  setSessionCheck(null);
-                }}
-                disabled={buttonBusy}
-              />
-              {sessionCheck ? (
-                <div
-                  className={
-                    "mt-3 rounded-lg border p-3 text-sm " +
-                    (sessionCheck.ok
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                      : "border-rose-200 bg-rose-50 text-rose-700")
-                  }
-                >
-                  {sessionCheck.ok ? (
-                    <div className="space-y-1 font-semibold">
-                      {sessionCheck.account.email ? <div>账号：{sessionCheck.account.email}</div> : null}
-                      {sessionCheck.account.name ? <div>名称：{sessionCheck.account.name}</div> : null}
-                      {!sessionCheck.account.email && sessionCheck.account.id ? <div>ID：{sessionCheck.account.id}</div> : null}
-                      {!sessionCheck.account.email && !sessionCheck.account.name && !sessionCheck.account.id ? (
-                        <div>Session 已识别</div>
-                      ) : null}
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[
+                  ["COOKIE", "Session 提交"],
+                  ["MANUAL", "人工交付"],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    disabled={buttonBusy}
+                    onClick={() => {
+                      setDeliveryMode(value as "COOKIE" | "MANUAL");
+                      setResult(null);
+                    }}
+                    className={
+                      "rounded-lg border px-3 py-2 text-left font-semibold transition " +
+                      (activeDeliveryMode === value
+                        ? "border-[var(--primary)] bg-white text-[var(--primary)]"
+                        : "border-[var(--border)] bg-white/60 text-[var(--muted)] hover:border-[var(--primary)]/50")
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {isSessionDelivery ? (
+                <>
+                  <textarea
+                    className="input mt-3 min-h-40 bg-white font-mono text-xs"
+                    placeholder="ChatGPT Session JSON"
+                    value={sessionJson}
+                    onChange={(event) => {
+                      setSessionJson(event.target.value);
+                      setSessionCheck(null);
+                    }}
+                    disabled={buttonBusy}
+                  />
+                  {sessionCheck ? (
+                    <div
+                      className={
+                        "mt-3 rounded-lg border p-3 text-sm " +
+                        (sessionCheck.ok
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                          : "border-rose-200 bg-rose-50 text-rose-700")
+                      }
+                    >
+                      {sessionCheck.ok ? (
+                        <div className="space-y-1 font-semibold">
+                          {sessionCheck.account.email ? <div>账号：{sessionCheck.account.email}</div> : null}
+                          {sessionCheck.account.name ? <div>名称：{sessionCheck.account.name}</div> : null}
+                          {!sessionCheck.account.email && sessionCheck.account.id ? <div>ID：{sessionCheck.account.id}</div> : null}
+                          {!sessionCheck.account.email && !sessionCheck.account.name && !sessionCheck.account.id ? (
+                            <div>Session 已识别</div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="font-semibold">{sessionCheck.message}</div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="font-semibold">{sessionCheck.message}</div>
-                  )}
+                  ) : null}
+                </>
+              ) : (
+                <div className="mt-3 rounded-lg border border-[var(--border)] bg-white/70 p-3 text-[var(--foreground)]">
+                  {supportTitle}
+                  {supportContact?.account ? (
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[var(--muted)] ring-1 ring-[var(--border)]">
+                      <span>{supportLabel}</span>
+                      <span className="font-mono text-[var(--foreground)]">{supportContact.account}</span>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
+              )}
             </div>
           ) : (
             <div className="rounded-xl border border-[var(--primary)] bg-indigo-50 p-4 text-sm">
@@ -265,7 +295,7 @@ export function PointProductRedeemForm({
 
         <button
           type="button"
-          disabled={buttonBusy || (insufficient && !(requiresSession && !sessionCheck?.ok))}
+          disabled={buttonBusy || insufficient}
           onClick={submit}
           className="btn-primary w-full py-3 disabled:cursor-not-allowed disabled:opacity-60"
         >

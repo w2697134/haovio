@@ -57,9 +57,6 @@ export async function POST(req: Request) {
   if (isSharedProduct && data.deliveryMode !== "MANUAL") {
     return NextResponse.json({ error: "合租号无需 Session，请走人工交付" }, { status: 400 });
   }
-  if (!isSharedProduct && data.deliveryMode !== "COOKIE") {
-    return NextResponse.json({ error: "个人直充请提交 Session" }, { status: 400 });
-  }
 
   const isManualDelivery = data.deliveryMode === "MANUAL";
   const cookieCheck = isManualDelivery ? null : validateChatGptCookieJson(data.cookieJson ?? "");
