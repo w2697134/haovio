@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
+import { formatMoney } from "@/lib/money";
 
 type ResultState =
   | { ok: false; message: string }
@@ -21,6 +22,13 @@ type CookieAccount = {
 type CookieCheckState =
   | { ok: false; message: string }
   | { ok: true; message: string; account: CookieAccount };
+
+type RechargeOrder = {
+  orderNo: string;
+  cashierUrl: string | null;
+  payableAmount: string;
+  configured: boolean;
+};
 
 type SessionPayload = {
   sessionToken?: unknown;
@@ -85,11 +93,18 @@ export function PointProductRedeemForm({
   const [deliveryMode, setDeliveryMode] = useState<"COOKIE" | "MANUAL">(
     allowsSessionDelivery ? "COOKIE" : "MANUAL"
   );
+  const [rechargeOpen, setRechargeOpen] = useState(false);
+  const [rechargePaymentType, setRechargePaymentType] = useState<"1" | "2">("2");
+  const [rechargeLoading, setRechargeLoading] = useState(false);
+  const [rechargeError, setRechargeError] = useState("");
+  const [rechargeOrder, setRechargeOrder] = useState<RechargeOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [result, setResult] = useState<ResultState | null>(null);
 
   const insufficient = balance < pointsCost;
+  const shortfallCents = Math.max(pointsCost - balance, 0);
+  const shortfallLabel = formatMoney(shortfallCents).replace(/\.00$/, "");
   const buttonBusy = loading || redirecting;
   const activeDeliveryMode = allowsSessionDelivery ? deliveryMode : "MANUAL";
   const isSessionDelivery = activeDeliveryMode === "COOKIE";
@@ -106,7 +121,12 @@ export function PointProductRedeemForm({
       setSessionCheck(checkedSession);
       return;
     }
-    if (insufficient) return;
+    if (insufficient) {
+      setRechargeOpen(true);
+      setRechargeError("");
+      setRechargeOrder(null);
+      return;
+    }
 
     setResult(null);
     setLoading(true);
@@ -146,12 +166,145 @@ export function PointProductRedeemForm({
     if (redirecting) return "正在提交...";
     if (loading) return "提交中...";
     if (isSessionDelivery && !sessionCheck?.ok) return "检测 Cookie";
-    if (insufficient) return "余额不足";
+    if (insufficient) return `补差额充值 ${shortfallLabel}`;
     return "提交订单";
+  }
+
+  async function createShortfallRecharge() {
+    if (rechargeLoading || shortfallCents <= 0) return;
+    setRechargeLoading(true);
+    setRechargeError("");
+    setRechargeOrder(null);
+
+    try {
+      const res = await fetch("/api/point-purchases/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: (shortfallCents / 100).toFixed(2),
+          paymentType: rechargePaymentType,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRechargeError(data.error ?? "创建充值订单失败");
+        return;
+      }
+      setRechargeOrder({
+        orderNo: data.orderNo,
+        cashierUrl: data.cashierUrl ?? null,
+        payableAmount: data.payableAmount,
+        configured: Boolean(data.configured),
+      });
+    } catch {
+      setRechargeError("网络错误，请稍后重试");
+    } finally {
+      setRechargeLoading(false);
+    }
   }
 
   return (
     <div className="relative">
+      {rechargeOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 py-6">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-black text-[var(--foreground)]">余额不足</h2>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  还差 {shortfallLabel}，充值后即可提交订单。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRechargeOpen(false)}
+                className="rounded-full px-3 py-1 text-sm font-bold text-[var(--muted)] hover:bg-[var(--surface-2)]"
+                disabled={rechargeLoading}
+              >
+                关闭
+              </button>
+            </div>
+
+            {!rechargeOrder ? (
+              <>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {[
+                    ["2", "支付宝"],
+                    ["1", "微信"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setRechargePaymentType(value as "1" | "2")}
+                      disabled={rechargeLoading}
+                      className={
+                        "rounded-xl border px-4 py-3 text-sm font-bold transition " +
+                        (rechargePaymentType === value
+                          ? "border-[var(--primary)] bg-indigo-50 text-[var(--primary)]"
+                          : "border-[var(--border)] text-slate-700 hover:bg-[var(--surface-2)]")
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={createShortfallRecharge}
+                  disabled={rechargeLoading}
+                  className="btn-primary mt-4 w-full py-3 disabled:opacity-60"
+                >
+                  {rechargeLoading ? "创建中..." : `充值 ${shortfallLabel}`}
+                </button>
+              </>
+            ) : (
+              <div className="mt-4">
+                {rechargeOrder.cashierUrl ? (
+                  <div className="mx-auto aspect-square w-52 rounded-xl border border-[var(--border)] bg-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={rechargeOrder.cashierUrl}
+                      alt="支付二维码"
+                      className="h-full w-full object-contain p-3"
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-700">
+                    充值订单已创建，支付二维码暂未开放，请联系客服处理。
+                  </div>
+                )}
+                <div className="mt-3 rounded-xl bg-[var(--surface-2)] p-3 text-sm">
+                  <div className="font-semibold text-[var(--foreground)]">订单 {rechargeOrder.orderNo}</div>
+                  <div className="mt-1 text-[var(--muted)]">支付金额 ￥{rechargeOrder.payableAmount}</div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <a
+                    href={`/buy-points/${rechargeOrder.orderNo}`}
+                    className="rounded-xl border border-[var(--border)] px-4 py-3 text-center text-sm font-bold text-slate-700 hover:bg-[var(--surface-2)]"
+                  >
+                    打开订单
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => router.refresh()}
+                    className="btn-primary py-3 text-sm"
+                  >
+                    已支付，刷新余额
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {rechargeError ? (
+              <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">
+                {rechargeError}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       {redirecting ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[calc(var(--radius-xl)+4px)] bg-white/72">
           <div className="rounded-2xl border border-[var(--border)] bg-white px-5 py-4 text-center shadow-sm">
@@ -296,7 +449,7 @@ export function PointProductRedeemForm({
 
         <button
           type="button"
-          disabled={buttonBusy || (insufficient && !(isSessionDelivery && !sessionCheck?.ok))}
+          disabled={buttonBusy}
           onClick={submit}
           className="btn-primary w-full py-3 disabled:cursor-not-allowed disabled:opacity-60"
         >
