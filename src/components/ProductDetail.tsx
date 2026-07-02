@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart, type AccountField } from "./CartProvider";
 import { formatMoney } from "@/lib/money";
+import { CheckIcon, GiftIcon, MonitorIcon } from "@/components/icons";
 
 export type DetailVariant = {
   id: string;
@@ -74,8 +75,10 @@ export function ProductDetail({
   function buyNow() {
     if (!variant) return;
     const params = new URLSearchParams({
+      productSlug: product.slug,
       product: product.name,
       variant: variant.name,
+      variantId: variant.id,
       qty: String(qty),
     });
     router.push("/redeem?" + params.toString());
@@ -95,7 +98,9 @@ export function ProductDetail({
             />
           </div>
         ) : (
-          <div className="grid h-full place-items-center text-7xl">{auto ? "🎁" : "📺"}</div>
+          <div className="grid h-full place-items-center text-[var(--muted)] opacity-30">
+            {auto ? <GiftIcon className="h-24 w-24" /> : <MonitorIcon className="h-24 w-24" />}
+          </div>
         )}
       </div>
 
@@ -143,8 +148,15 @@ export function ProductDetail({
         </div>
 
         <div data-purchase-actions className="mt-8 flex gap-3 lg:mt-auto">
-          <button onClick={addToCart} className="flex-1 rounded-xl border border-[var(--border)] py-3 font-semibold hover:bg-[var(--surface-2)]">
-            {added ? "✓ 已加入" : "加入购物车"}
+          <button onClick={addToCart} className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--border)] py-3 font-semibold hover:bg-[var(--surface-2)]">
+            {added ? (
+              <>
+                <CheckIcon className="h-5 w-5 text-[var(--success)]" />
+                已加入
+              </>
+            ) : (
+              "加入购物车"
+            )}
           </button>
           <button onClick={buyNow} className="btn-primary flex-1 py-3">
             立即购买

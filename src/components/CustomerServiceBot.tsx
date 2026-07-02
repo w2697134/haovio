@@ -3,18 +3,11 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { Contact } from "@/lib/settings";
-import { QUICK_REPLIES, WELCOME, FALLBACK, matchKb } from "@/lib/kb";
+import { WELCOME, FALLBACK, matchKb } from "@/lib/kb";
+import { CloseIcon, PlatformIcon } from "@/components/icons";
+import { listenClientEvent } from "@/lib/clientEvents";
 
 type Msg = { role: "bot" | "user"; text: string; contact?: boolean };
-
-const PLATFORM_ICON: Record<string, string> = {
-  QQ: "🐧",
-  QQ群: "🐧",
-  Telegram: "✈️",
-  WhatsApp: "📱",
-  微信: "💬",
-  邮箱: "📧",
-};
 
 function SupportAvatar({ size = 42 }: { size?: number }) {
   return (
@@ -44,8 +37,7 @@ export function CustomerServiceBot({ contacts }: { contacts: Contact[] }) {
       setOpen(true);
     }
 
-    window.addEventListener("open-customer-service", openChat);
-    return () => window.removeEventListener("open-customer-service", openChat);
+    return listenClientEvent("openCustomerService", openChat);
   }, []);
 
   function localAnswer(q: string) {
@@ -107,8 +99,8 @@ export function CustomerServiceBot({ contacts }: { contacts: Contact[] }) {
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" /> 在线为你解答
               </div>
             </div>
-            <button onClick={() => setOpen(false)} aria-label="关闭" className="text-[var(--muted)] hover:text-[var(--foreground)]">
-              ✕
+            <button onClick={() => setOpen(false)} aria-label="关闭" className="grid h-8 w-8 place-items-center rounded-lg text-[var(--muted)] transition hover:bg-[var(--surface)] hover:text-[var(--foreground)]">
+              <CloseIcon className="h-[18px] w-[18px]" />
             </button>
           </div>
 
@@ -135,7 +127,7 @@ export function CustomerServiceBot({ contacts }: { contacts: Contact[] }) {
                     ) : (
                       contacts.map((c, ci) => (
                         <div key={ci} className="flex items-center gap-2 rounded-lg border border-[var(--border)] p-2 text-sm">
-                          <span>{PLATFORM_ICON[c.platform] ?? "🔗"}</span>
+                          <PlatformIcon platform={c.platform} className="h-4 w-4 text-[var(--primary)]" />
                           <span className="text-xs text-[var(--muted)]">{c.platform}</span>
                           <span className="ml-auto font-mono font-medium">{c.account}</span>
                         </div>
@@ -152,18 +144,6 @@ export function CustomerServiceBot({ contacts }: { contacts: Contact[] }) {
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="flex flex-wrap gap-1.5 border-t border-[var(--border)] px-3 pt-2">
-            {QUICK_REPLIES.map((q) => (
-              <button
-                key={q}
-                onClick={() => ask(q)}
-                className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--foreground)]"
-              >
-                {q}
-              </button>
-            ))}
           </div>
 
           <form

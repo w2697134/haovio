@@ -18,7 +18,7 @@ export type SeedProduct = {
   name: string;
   description: string;
   region: string;
-  deliveryType: "AUTO" | "MANUAL";
+  deliveryType: "MANUAL";
   currency: string;
   image?: string;
   accountFields: SeedAccountField[];

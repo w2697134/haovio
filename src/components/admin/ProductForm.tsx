@@ -26,7 +26,6 @@ export type ProductFormInitial = {
   name: string;
   description: string;
   region: string;
-  deliveryType: string;
   status: string;
   categoryId: string;
   accountFields: AccountFieldInput[];
@@ -38,7 +37,6 @@ const empty: ProductFormInitial = {
   name: "",
   description: "",
   region: "Global",
-  deliveryType: "MANUAL",
   status: "ACTIVE",
   categoryId: "",
   accountFields: [],
@@ -53,7 +51,7 @@ export function ProductForm({
   initial?: ProductFormInitial;
 }) {
   const router = useRouter();
-  const [f, setF] = useState<ProductFormInitial>(
+  const [f, setF] = useState<ProductFormInitial>(() =>
     initial ?? { ...empty, categoryId: categories[0]?.id ?? "" }
   );
   const [error, setError] = useState("");
@@ -107,7 +105,6 @@ export function ProductForm({
         name: f.name.trim(),
         description: f.description,
         region: f.region,
-        deliveryType: f.deliveryType,
         status: f.status,
         categoryId: f.categoryId,
         accountFields: f.accountFields
@@ -167,7 +164,7 @@ export function ProductForm({
           <label className="mb-1 block text-sm text-[var(--muted)]">描述</label>
           <textarea className="input" rows={2} value={f.description} onChange={(e) => up("description", e.target.value)} />
         </div>
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label className="mb-1 block text-sm text-[var(--muted)]">分类</label>
             <select className="input" value={f.categoryId} onChange={(e) => up("categoryId", e.target.value)}>
@@ -179,13 +176,6 @@ export function ProductForm({
           <div>
             <label className="mb-1 block text-sm text-[var(--muted)]">区域</label>
             <input className="input" value={f.region} onChange={(e) => up("region", e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-[var(--muted)]">发货方式</label>
-            <select className="input" value={f.deliveryType} onChange={(e) => up("deliveryType", e.target.value)}>
-              <option value="AUTO">自动(卡密)</option>
-              <option value="MANUAL">人工代充</option>
-            </select>
           </div>
           <div>
             <label className="mb-1 block text-sm text-[var(--muted)]">状态</label>
@@ -220,7 +210,7 @@ export function ProductForm({
           <button onClick={addField} className="text-sm text-[var(--accent)]">+ 添加字段</button>
         </div>
         {f.accountFields.length === 0 && (
-          <p className="text-sm text-[var(--muted)]">无需买家填写信息(如纯卡密可不加)。</p>
+          <p className="text-sm text-[var(--muted)]">未添加字段时，买家下单无需填写额外信息。</p>
         )}
         {f.accountFields.map((a, i) => (
           <div key={i} className="grid grid-cols-2 gap-2 sm:grid-cols-5">

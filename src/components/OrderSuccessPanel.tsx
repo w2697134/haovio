@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 import type { Contact } from "@/lib/settings";
-
-const PLATFORM_ICON: Record<string, string> = {
-  QQ: "🐧",
-  QQ群: "🐧",
-  Telegram: "✈️",
-  WhatsApp: "📱",
-  邮箱: "📧",
-};
+import { CheckIcon, PlatformIcon } from "@/components/icons";
 
 export function OrderSuccessPanel({
   orderNo,
@@ -44,9 +37,16 @@ export function OrderSuccessPanel({
           <span className="flex-1 font-mono text-2xl font-bold tracking-wide">{orderNo}</span>
           <button
             onClick={() => copy(orderNo, "no")}
-            className="btn-primary shrink-0 px-4 py-2 text-sm"
+            className="btn-primary inline-flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm"
           >
-            {copied === "no" ? "✓ 已复制" : "复制单号"}
+            {copied === "no" ? (
+              <>
+                <CheckIcon className="h-4 w-4" />
+                已复制
+              </>
+            ) : (
+              "复制单号"
+            )}
           </button>
         </div>
         <p className="mt-3 text-sm text-[var(--muted)]">添加 QQ 时发送这个订单号。</p>
@@ -66,16 +66,25 @@ export function OrderSuccessPanel({
                 className="rounded-lg bg-[var(--surface-2)] p-3"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-xl">{PLATFORM_ICON[c.platform] ?? "🔗"}</span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--surface)] text-[var(--primary)] ring-1 ring-[var(--border)]">
+                    <PlatformIcon platform={c.platform} className="h-5 w-5" />
+                  </span>
                   <div className="flex-1">
                     <div className="text-xs text-[var(--muted)]">{c.platform}</div>
                     <div className="font-mono font-medium">{c.account}</div>
                   </div>
                   <button
                     onClick={() => copy(c.account, `c${i}`)}
-                    className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs hover:bg-[var(--surface)]"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs hover:bg-[var(--surface)]"
                   >
-                    {copied === `c${i}` ? "✓ 已复制" : "复制"}
+                    {copied === `c${i}` ? (
+                      <>
+                        <CheckIcon className="h-3.5 w-3.5 text-[var(--success)]" />
+                        已复制
+                      </>
+                    ) : (
+                      "复制"
+                    )}
                   </button>
                 </div>
               </div>

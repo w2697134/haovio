@@ -1,30 +1,19 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 
 /**
- * 邀请优惠体系的全部「具体数目」集中在这里。
- * 待用户确定金额后, 只改这一处即可。金额单位均为「分」(1 元 = 100 分)。
- *
- * 规则:
- * - 新用户用某人的邀请码注册 -> 立刻获得「迎新券」(被邀请人优惠)。
- * - 被邀请人的「首单被后台标记完成」-> 邀请人获得「邀请奖励券」(每个被邀请人仅一次)。
- * - 优惠券为固定面额, 一单只能用一张, 订单原价需 >= 使用门槛。
+ * 邀请返利规则集中在这里。
+ * 当前规则: 好友绑定邀请码后产生实付消费, 邀请人获得实付金额 2% 的余额返利。
  */
 export const INVITE_CONFIG = {
-  // 被邀请新人注册即得的迎新券面额(分) —— TODO 待定具体数目
-  welcomeCouponCents: 1000, // 示例: ¥10
-  // 迎新券使用门槛: 订单原价不低于此值(分), 0 = 无门槛
-  welcomeMinSpendCents: 0,
-
-  // 邀请人在「被邀请人首单完成」后获得的奖励券面额(分) —— TODO 待定具体数目
-  referralRewardCents: 1000, // 示例: ¥10
-  // 奖励券使用门槛(分), 0 = 无门槛
-  referralMinSpendCents: 0,
-
-  // 优惠券有效期(天); null 表示永久有效 —— TODO 可按需调整
+  referralRewardRateBps: 200,
   couponValidDays: 30 as number | null,
 } as const;
 
+export const REFERRAL_LEDGER_TYPE = "REFERRAL_REWARD";
+
 export type CouponKind = "WELCOME" | "REFERRAL";
+type InviteDb = typeof prisma | Prisma.TransactionClient;
 
 // 邀请码字符集: 去掉易混淆的 0/O/1/I/L
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -46,13 +35,6 @@ export function normalizeInviteCode(raw: string): string {
     .replace(/0/g, "O")
     .replace(/1/g, "I")
     .replace(/L/g, "I");
-}
-
-function couponExpiry(): Date | null {
-  if (INVITE_CONFIG.couponValidDays == null) return null;
-  const d = new Date();
-  d.setDate(d.getDate() + INVITE_CONFIG.couponValidDays);
-  return d;
 }
 
 /** 为用户生成唯一邀请码; 已有则原样返回(幂等)。 */
@@ -91,53 +73,65 @@ export async function findInviterByCode(
   return inviter;
 }
 
-async function genCouponCode(): Promise<string> {
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const code = `HV${randomCode(8)}`;
-    const exists = await prisma.coupon.findUnique({ where: { code }, select: { id: true } });
-    if (!exists) return code;
-  }
-  throw new Error("COUPON_CODE_GEN_FAILED");
-}
-
-/** 发放迎新券给被邀请的新用户。 */
+/** 兼容旧调用。新积分制不再给新用户发优惠券。 */
 export async function grantWelcomeCoupon(userId: string, sourceUserId: string) {
-  if (INVITE_CONFIG.welcomeCouponCents <= 0) return;
-  await prisma.coupon.create({
-    data: {
-      code: await genCouponCode(),
-      kind: "WELCOME",
-      amount: INVITE_CONFIG.welcomeCouponCents,
-      minSpend: INVITE_CONFIG.welcomeMinSpendCents,
-      sourceUserId,
-      expiresAt: couponExpiry(),
-      userId,
-    },
-  });
+  void userId;
+  void sourceUserId;
 }
 
-/**
- * 在被邀请人首单完成后, 给邀请人发放奖励券。
- * 幂等: 同一个被邀请人只会触发一次(以 sourceUserId 去重)。
- */
-export async function grantReferralReward(inviterId: string, inviteeId: string) {
-  if (INVITE_CONFIG.referralRewardCents <= 0) return;
-  const already = await prisma.coupon.findFirst({
-    where: { userId: inviterId, kind: "REFERRAL", sourceUserId: inviteeId },
+export function calculateReferralRewardPoints(amountCents: number) {
+  if (!Number.isFinite(amountCents) || amountCents <= 0) return 0;
+  return Math.floor((amountCents * INVITE_CONFIG.referralRewardRateBps) / 10_000);
+}
+
+function formatYuan(cents: number) {
+  return (cents / 100).toFixed(2).replace(/\.00$/, "");
+}
+
+export async function grantReferralPointReward({
+  inviterId,
+  inviteeId,
+  amountCents,
+  refType,
+  refId,
+  tx,
+}: {
+  inviterId: string;
+  inviteeId: string;
+  amountCents: number;
+  refType: string;
+  refId: string;
+  tx?: Prisma.TransactionClient;
+}) {
+  const rewardPoints = calculateReferralRewardPoints(amountCents);
+  if (rewardPoints <= 0) return null;
+
+  const db: InviteDb = tx ?? prisma;
+  const already = await db.pointLedger.findFirst({
+    where: { userId: inviterId, type: REFERRAL_LEDGER_TYPE, refType, refId },
     select: { id: true },
   });
-  if (already) return;
-  await prisma.coupon.create({
+  if (already) return null;
+
+  const updatedUser = await db.user.update({
+    where: { id: inviterId },
+    data: { pointsBalance: { increment: rewardPoints } },
+    select: { pointsBalance: true },
+  });
+
+  await db.pointLedger.create({
     data: {
-      code: await genCouponCode(),
-      kind: "REFERRAL",
-      amount: INVITE_CONFIG.referralRewardCents,
-      minSpend: INVITE_CONFIG.referralMinSpendCents,
-      sourceUserId: inviteeId,
-      expiresAt: couponExpiry(),
       userId: inviterId,
+      type: REFERRAL_LEDGER_TYPE,
+      amount: rewardPoints,
+      balanceAfter: updatedUser.pointsBalance,
+      refType,
+      refId,
+      note: `邀请返利：好友消费 ¥${formatYuan(amountCents)}，来自 ${inviteeId.slice(0, 8)}`,
     },
   });
+
+  return { rewardPoints, balanceAfter: updatedUser.pointsBalance };
 }
 
 export type UsableCoupon = {

@@ -23,7 +23,7 @@ export const productSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional().default(""),
   region: z.string().default("Global"),
-  deliveryType: z.enum(["AUTO", "MANUAL"]).default("MANUAL"),
+  deliveryType: z.literal("MANUAL").default("MANUAL"),
   status: z.enum(["ACTIVE", "HIDDEN"]).default("ACTIVE"),
   categoryId: z.string().min(1),
   accountFields: z.array(accountFieldSchema).default([]),

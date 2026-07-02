@@ -31,7 +31,6 @@ export default async function EditProductPage({
     name: product.name,
     description: product.description ?? "",
     region: product.region,
-    deliveryType: product.deliveryType,
     status: product.status,
     categoryId: product.categoryId,
     accountFields: accountFields.map((a) => ({

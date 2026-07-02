@@ -1,4 +1,4 @@
-import { AdminRedeemList } from "@/components/admin/AdminRedeemList";
+import { AdminPointRedeemList } from "@/components/admin/AdminPointRedeemList";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +8,7 @@ export default function AdminTotalOrdersPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   return (
-    <AdminRedeemList
+    <AdminPointRedeemList
       title="总订单"
       action="/admin"
       where={{}}

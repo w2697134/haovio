@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart, type AccountField } from "@/components/CartProvider";
 import { formatMoney } from "@/lib/money";
+import { CartIcon } from "@/components/icons";
 
 type UsableCoupon = {
   id: string;
@@ -130,7 +131,7 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <p className="text-5xl">🛒</p>
+        <CartIcon className="mx-auto h-16 w-16 text-[var(--muted)] opacity-40" strokeWidth={1.5} />
         <p className="mt-4 text-lg text-[var(--muted)]">购物车空空如也</p>
         <Link href="/" className="btn-primary mt-6 inline-block px-6 py-2.5">
           去逛逛

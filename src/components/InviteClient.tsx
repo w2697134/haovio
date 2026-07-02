@@ -19,7 +19,7 @@ function CopyButton({ value, label = "复制" }: { value: string; label?: string
     <button
       type="button"
       onClick={copy}
-      className="btn-primary shrink-0 px-4 py-2 text-sm"
+      className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
     >
       {copied ? "已复制" : label}
     </button>
@@ -38,7 +38,7 @@ export function InviteShareCard({
       <div>
         <div className="mb-1 text-sm text-[var(--muted)]">我的邀请码</div>
         <div className="flex items-center gap-3">
-          <span className="flex-1 rounded-lg bg-[var(--surface-2)] px-4 py-2 font-mono text-lg font-bold tracking-widest">
+          <span className="flex-1 rounded-lg bg-[var(--surface-2)] px-4 py-2 font-mono text-lg font-medium tracking-widest">
             {inviteCode}
           </span>
           <CopyButton value={inviteCode} label="复制邀请码" />

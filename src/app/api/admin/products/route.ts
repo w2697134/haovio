@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       name: d.name,
       description: d.description,
       region: d.region,
-      deliveryType: d.deliveryType,
+      deliveryType: "MANUAL",
       status: d.status,
       categoryId: d.categoryId,
       accountFields: JSON.stringify(d.accountFields),

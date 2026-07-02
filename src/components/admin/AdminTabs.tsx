@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { href: "/admin", label: "总订单" },
   { href: "/admin/pending", label: "待处理" },
-  { href: "/admin/card-codes", label: "卡密" },
   { href: "/admin/settings", label: "设置" },
 ];
 
@@ -16,8 +15,7 @@ export function AdminTabs() {
   return (
     <nav className="flex items-end gap-8">
       {tabs.map((tab) => {
-        const active =
-          tab.href === "/admin" ? pathname === "/admin" : pathname.startsWith(tab.href);
+        const active = tab.href === "/admin" ? pathname === "/admin" : pathname.startsWith(tab.href);
         return (
           <Link
             key={tab.href}

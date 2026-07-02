@@ -1,8 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { ProductDetail } from "@/components/ProductDetail";
-import type { AccountField } from "@/components/CartProvider";
-import { getProductImage } from "@/lib/productImages";
 
 export const dynamic = "force-dynamic";
 
@@ -27,33 +24,15 @@ export default async function ProductPage({
   if (!product || product.status !== "ACTIVE") notFound();
 
   const selectedVariant = product.variants.find((v) => v.id === initialVariantId) ?? product.variants[0];
-  const detailVariants = selectedVariant ? [selectedVariant] : [];
+  if (!selectedVariant) notFound();
 
-  let accountFields: AccountField[] = [];
-  try {
-    accountFields = JSON.parse(product.accountFields);
-  } catch {}
+  const redirectParams = new URLSearchParams({
+    productSlug: product.slug,
+    product: product.name,
+    variant: selectedVariant.name,
+    variantId: selectedVariant.id,
+    qty: "1",
+  });
 
-  const detail = {
-    slug: product.slug,
-    name: product.name,
-    description: product.description,
-    region: product.region,
-    deliveryType: product.deliveryType,
-    image: getProductImage(product.slug, product.image),
-    accountFields,
-    variants: detailVariants.map((v) => ({
-      id: v.id,
-      name: v.name,
-      price: v.price,
-      currency: v.currency,
-      stock: v.stock,
-    })),
-  };
-
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <ProductDetail product={detail} initialVariantId={initialVariantId} />
-    </div>
-  );
+  redirect(`/redeem?${redirectParams.toString()}`);
 }

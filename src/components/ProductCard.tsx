@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { formatMoney } from "@/lib/money";
 import { getProductImage } from "@/lib/productImages";
+import { GiftIcon, MonitorIcon } from "@/components/icons";
 
 type Variant = { price: number; currency: string };
 
@@ -48,8 +49,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             />
           </div>
         ) : (
-          <span className="grid h-full place-items-center text-4xl opacity-80 transition group-hover:scale-110">
-            {auto ? "🎁" : "📺"}
+          <span className="grid h-full place-items-center text-[var(--muted)] opacity-35 transition group-hover:scale-110">
+            {auto ? <GiftIcon className="h-12 w-12" /> : <MonitorIcon className="h-12 w-12" />}
           </span>
         )}
       </div>

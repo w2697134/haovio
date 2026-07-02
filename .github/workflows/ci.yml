@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: "file:./prisma/ci.db"
+      JWT_SECRET: "ci-secret"
+      COOKIE_ENCRYPTION_KEY: "ci-cookie-secret"
+      ADMIN_ACCESS_KEY: "ci-admin"
+      APP_BASE_URL: "https://haovio.com"
+      NEXT_PUBLIC_APP_BASE_URL: "https://haovio.com"
+      POINT_PURCHASE_QR_ENABLED: "0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply Prisma migrations
+        run: npx prisma migrate deploy
+
+      - name: Type check
+        run: npx tsc --noEmit --pretty false
+
+      - name: Build
+        run: npm run build

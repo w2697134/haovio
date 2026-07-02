@@ -52,7 +52,7 @@ export function SettingsForm({
         setMsg(data.error ?? "保存失败");
         return;
       }
-      setMsg("✓ 已保存");
+      setMsg("已保存");
       router.refresh();
     } catch {
       setMsg("网络错误,请重试");

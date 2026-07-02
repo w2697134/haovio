@@ -10,7 +10,6 @@ export type AdminProduct = {
   slug: string;
   name: string;
   status: string;
-  deliveryType: string;
   categoryName: string;
   minPrice: number;
   currency: string;
@@ -55,9 +54,6 @@ export function ProductListRow({ product }: { product: AdminProduct }) {
         <div className="font-mono text-xs text-[var(--muted)]">{product.slug}</div>
       </td>
       <td className="p-3 text-sm text-[var(--muted)]">{product.categoryName}</td>
-      <td className="p-3 text-sm">
-        {product.deliveryType === "AUTO" ? "自动" : "代充"}
-      </td>
       <td className="p-3 text-sm">
         {formatMoney(product.minPrice, product.currency)} 起 · {product.variantCount} 规格
       </td>

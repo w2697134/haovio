@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { AuthForm } from "@/components/AuthForm";
 import { getCurrentUser } from "@/lib/auth";
 
 export default async function RegisterPage({
@@ -8,7 +7,7 @@ export default async function RegisterPage({
   searchParams: Promise<{ ref?: string }>;
 }) {
   const user = await getCurrentUser();
-  if (user) redirect("/");
+  if (user) redirect(user.name?.trim() ? "/" : "/profile-setup");
   const { ref } = await searchParams;
-  return <AuthForm mode="register" defaultInviteCode={ref ?? ""} />;
+  redirect(ref ? `/login?ref=${encodeURIComponent(ref)}` : "/login");
 }

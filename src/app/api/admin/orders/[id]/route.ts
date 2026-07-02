@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { ADMIN_NEXT_STATUS } from "@/lib/orderStatus";
-import { grantReferralReward } from "@/lib/invite";
+import { grantReferralPointReward } from "@/lib/invite";
 
 const schema = z.object({
   status: z.enum(["PAID", "PROCESSING", "COMPLETED", "CANCELLED"]).optional(),
@@ -79,7 +79,7 @@ export async function PATCH(
     data: updateData,
   });
 
-  // 被邀请人首单完成 -> 给邀请人发邀请奖励券(grantReferralReward 内部按被邀请人去重, 仅一次)
+  // 被邀请人订单完成后，按实付金额给邀请人发余额返利；以订单 id 幂等去重。
   if (
     updateData.status === "COMPLETED" &&
     order.status !== "COMPLETED" &&
@@ -90,7 +90,13 @@ export async function PATCH(
       select: { id: true, invitedById: true },
     });
     if (buyer?.invitedById) {
-      await grantReferralReward(buyer.invitedById, buyer.id);
+      await grantReferralPointReward({
+        inviterId: buyer.invitedById,
+        inviteeId: buyer.id,
+        amountCents: updateData.totalAmount ?? order.totalAmount,
+        refType: "Order",
+        refId: order.id,
+      });
     }
   }
 

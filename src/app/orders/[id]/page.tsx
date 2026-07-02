@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/money";
 import { StatusBadge } from "@/components/StatusBadge";
 import { OrderSuccessPanel } from "@/components/OrderSuccessPanel";
 import { getSettings } from "@/lib/settings";
+import { ArrowLeftIcon, CheckIcon, HourglassIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +37,9 @@ export default async function OrderDetailPage({
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       {user && (
-        <Link href="/orders" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
-          ← 返回订单列表
+        <Link href="/orders" className="inline-flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
+          <ArrowLeftIcon className="h-4 w-4" />
+          返回订单列表
         </Link>
       )}
 
@@ -160,13 +162,15 @@ export default async function OrderDetailPage({
             </p>
           )}
           {order.status === "PROCESSING" && (
-            <p className="rounded-lg bg-[var(--primary)]/10 p-3 text-center text-sm text-[var(--primary)]">
-              ⏳ 已确认,正在为你充值,请耐心等待
+            <p className="flex items-center justify-center gap-2 rounded-lg bg-[var(--primary)]/10 p-3 text-center text-sm text-[var(--primary)]">
+              <HourglassIcon className="h-4 w-4 shrink-0" />
+              已确认,正在为你充值,请耐心等待
             </p>
           )}
           {order.status === "COMPLETED" && (
-            <p className="rounded-lg bg-[var(--success)]/10 p-3 text-center text-sm text-[var(--success)]">
-              ✅ 充值已完成,感谢惠顾!
+            <p className="flex items-center justify-center gap-2 rounded-lg bg-[var(--success)]/10 p-3 text-center text-sm text-[var(--success)]">
+              <CheckIcon className="h-4 w-4 shrink-0" strokeWidth={2.2} />
+              充值已完成,感谢惠顾!
             </p>
           )}
           {order.status === "CANCELLED" && (

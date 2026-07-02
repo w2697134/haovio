@@ -15,7 +15,6 @@ export default async function AdminProductsPage() {
     slug: p.slug,
     name: p.name,
     status: p.status,
-    deliveryType: p.deliveryType,
     categoryName: p.category.name,
     minPrice: p.variants[0]?.price ?? 0,
     currency: p.variants[0]?.currency ?? "CNY",
@@ -37,7 +36,6 @@ export default async function AdminProductsPage() {
             <tr>
               <th className="p-3 font-medium">商品</th>
               <th className="p-3 font-medium">分类</th>
-              <th className="p-3 font-medium">发货</th>
               <th className="p-3 font-medium">价格</th>
               <th className="p-3 font-medium">状态</th>
               <th className="p-3"></th>

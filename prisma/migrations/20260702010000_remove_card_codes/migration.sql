@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS "CardRedeem";
+DROP TABLE IF EXISTS "CardCode";

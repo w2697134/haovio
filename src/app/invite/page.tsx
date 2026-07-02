@@ -1,113 +1,146 @@
 import { redirect } from "next/navigation";
+import { InviteShareCard } from "@/components/InviteClient";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { ensureInviteCode, INVITE_CONFIG } from "@/lib/invite";
-import { formatMoney } from "@/lib/money";
-import { InviteShareCard } from "@/components/InviteClient";
+import { ensureInviteCode, INVITE_CONFIG, REFERRAL_LEDGER_TYPE } from "@/lib/invite";
+import { formatCnyBalance } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
-const COUPON_KIND_LABEL: Record<string, string> = {
-  WELCOME: "迎新券",
-  REFERRAL: "邀请奖励券",
-};
+function publicBaseUrl() {
+  const raw = process.env.NEXT_PUBLIC_APP_BASE_URL || process.env.APP_BASE_URL || "";
+  const base = raw.replace(/\/$/, "");
+  if (!base || /localhost|127\.0\.0\.1|47\./.test(base)) return "https://haovio.com";
+  return base;
+}
 
-const COUPON_STATUS_LABEL: Record<string, string> = {
-  UNUSED: "可使用",
-  USED: "已使用",
-  EXPIRED: "已过期",
-};
+function formatDate(date: Date) {
+  return new Date(date).toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
-function couponState(c: { status: string; expiresAt: Date | null }) {
-  if (c.status === "UNUSED" && c.expiresAt && c.expiresAt.getTime() <= Date.now()) {
-    return "EXPIRED";
-  }
-  return c.status;
+function formatBalance(amount: number) {
+  return formatCnyBalance(amount);
 }
 
 export default async function InvitePage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  const sessionUser = await getCurrentUser();
+  if (!sessionUser) redirect("/login");
 
-  const inviteCode = await ensureInviteCode(user.id);
+  const inviteCode = await ensureInviteCode(sessionUser.id);
 
-  const [inviteeCount, coupons] = await Promise.all([
-    prisma.user.count({ where: { invitedById: user.id } }),
-    prisma.coupon.findMany({
-      where: { userId: user.id },
-      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+  const [user, inviteeCount, rewardStats, rewardRecords] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: sessionUser.id },
+      select: { pointsBalance: true },
+    }),
+    prisma.user.count({ where: { invitedById: sessionUser.id } }),
+    prisma.pointLedger.aggregate({
+      where: { userId: sessionUser.id, type: REFERRAL_LEDGER_TYPE },
+      _sum: { amount: true },
+      _count: { _all: true },
+    }),
+    prisma.pointLedger.findMany({
+      where: { userId: sessionUser.id, type: REFERRAL_LEDGER_TYPE },
+      orderBy: { createdAt: "desc" },
+      take: 10,
     }),
   ]);
 
-  const usableCount = coupons.filter((c) => couponState(c) === "UNUSED").length;
+  if (!user) redirect("/login");
 
-  const base = process.env.APP_BASE_URL?.replace(/\/$/, "") ?? "";
-  const shareLink = `${base}/register?ref=${inviteCode}`;
-
-  const welcomeYuan = formatMoney(INVITE_CONFIG.welcomeCouponCents);
-  const rewardYuan = formatMoney(INVITE_CONFIG.referralRewardCents);
+  const shareLink = `${publicBaseUrl()}/login?ref=${inviteCode}`;
+  const totalReward = rewardStats._sum.amount ?? 0;
+  const rewardRate = INVITE_CONFIG.referralRewardRateBps / 100;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-2xl font-bold">邀请有礼</h1>
-      <p className="mt-1 text-sm text-[var(--muted)]">
-        把邀请码或链接分享给好友。好友注册即得 {welcomeYuan} 迎新券；好友首单完成后，你再得 {rewardYuan} 奖励券。
-      </p>
+    <div className="mx-auto max-w-4xl px-4 py-12">
+      <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">邀请返利</h1>
 
-      <div className="mt-6">
+      <section className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <InviteShareCard inviteCode={inviteCode} shareLink={shareLink} />
-      </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
-        <div className="card p-5 text-center">
-          <div className="text-3xl font-extrabold text-[var(--accent)]">{inviteeCount}</div>
-          <div className="mt-1 text-sm text-[var(--muted)]">已邀请好友</div>
+        <div className="grid gap-3">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+            <div className="text-sm text-[var(--muted)]">累计返利</div>
+            <div className="mt-2 text-4xl font-medium tabular-nums text-[var(--foreground)]">
+              {formatBalance(totalReward)}
+            </div>
+            <div className="mt-1 text-sm text-[var(--muted)]">余额</div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-center">
+              <div className="text-xl font-medium tabular-nums text-[var(--foreground)]">{inviteeCount}</div>
+              <div className="mt-1 text-xs text-[var(--muted)]">已邀请</div>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-center">
+              <div className="text-xl font-medium tabular-nums text-[var(--foreground)]">
+                {formatBalance(user.pointsBalance)}
+              </div>
+              <div className="mt-1 text-xs text-[var(--muted)]">当前余额</div>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-center">
+              <div className="text-xl font-medium tabular-nums text-[var(--foreground)]">{rewardRate}%</div>
+              <div className="mt-1 text-xs text-[var(--muted)]">返利比例</div>
+            </div>
+          </div>
         </div>
-        <div className="card p-5 text-center">
-          <div className="text-3xl font-extrabold text-[var(--accent)]">{usableCount}</div>
-          <div className="mt-1 text-sm text-[var(--muted)]">可用优惠券</div>
-        </div>
-      </div>
+      </section>
 
-      <h2 className="mt-8 mb-3 text-lg font-bold">我的优惠券</h2>
-      {coupons.length === 0 ? (
-        <p className="card p-6 text-center text-sm text-[var(--muted)]">
-          还没有优惠券。邀请好友或使用邀请码注册即可获得。
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {coupons.map((c) => {
-            const state = couponState(c);
-            const usable = state === "UNUSED";
-            return (
-              <div
-                key={c.id}
-                className={`card flex items-center justify-between p-4 ${usable ? "" : "opacity-60"}`}
+      <section className="mt-10">
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 className="text-base font-medium tracking-tight text-[var(--foreground)]">返利记录</h2>
+          {rewardRecords.length > 0 ? (
+            <span className="text-sm text-[var(--muted)] tabular-nums">{rewardStats._count._all} 笔</span>
+          ) : null}
+        </div>
+
+        {rewardRecords.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <span className="grid h-11 w-11 place-items-center rounded-full bg-[var(--surface-2)] text-[var(--muted)]">
+              <svg
+                width={20}
+                height={20}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
               >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl font-extrabold text-[var(--accent)]">
-                      {formatMoney(c.amount)}
-                    </span>
-                    <span className="rounded bg-[var(--surface-2)] px-2 py-0.5 text-xs text-[var(--muted)]">
-                      {COUPON_KIND_LABEL[c.kind] ?? c.kind}
-                    </span>
+                <circle cx="9" cy="8" r="3.2" />
+                <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+                <path d="M18 8v5M20.5 10.5h-5" />
+              </svg>
+            </span>
+            <p className="text-sm text-[var(--foreground)]">还没有返利记录</p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+            <div className="divide-y divide-[var(--border)]">
+              {rewardRecords.map((record) => (
+                <div key={record.id} className="flex items-center justify-between gap-4 px-5 py-4">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-[var(--foreground)]">邀请返利</div>
+                    <div className="mt-1 truncate text-xs text-[var(--muted)]">
+                      {formatDate(record.createdAt)}
+                      {record.note ? ` · ${record.note}` : ""}
+                    </div>
                   </div>
-                  <div className="mt-1 text-xs text-[var(--muted)]">
-                    {c.minSpend > 0 ? `满 ${formatMoney(c.minSpend)} 可用` : "无门槛"}
-                    {c.expiresAt
-                      ? ` · ${new Date(c.expiresAt).toLocaleDateString("zh-CN")} 到期`
-                      : " · 永久有效"}
+                  <div className="shrink-0 text-base font-medium tabular-nums text-emerald-600">
+                    +{formatBalance(record.amount)}
                   </div>
                 </div>
-                <span className="text-sm text-[var(--muted)]">
-                  {COUPON_STATUS_LABEL[state] ?? state}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -33,7 +33,7 @@ export default async function AdminQuestionsPage() {
 
       <div className="card overflow-hidden">
         {data.length === 0 ? (
-          <p className="p-10 text-center text-[var(--muted)]">还没有记录 — 客服目前都答得上来 👍</p>
+          <p className="p-10 text-center text-[var(--muted)]">还没有记录 — 客服目前都答得上来</p>
         ) : (
           data.map((q) => <QuestionRow key={q.id} q={q} />)
         )}

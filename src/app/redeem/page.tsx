@@ -1,25 +1,67 @@
-import Link from "next/link";
-import { CardRedeemForm } from "@/components/CardRedeemForm";
+import { notFound, redirect } from "next/navigation";
+import { BackButton } from "@/components/BackButton";
+import { PointProductRedeemForm } from "@/components/PointProductRedeemForm";
+import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { pointsForPrice } from "@/lib/points";
+import { getSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function RedeemPage({
   searchParams,
 }: {
-  searchParams: Promise<{ product?: string; variant?: string }>;
+  searchParams: Promise<{ variantId?: string }>;
 }) {
-  const { product, variant } = await searchParams;
+  const [{ variantId }, settings, sessionUser] = await Promise.all([
+    searchParams,
+    getSettings(),
+    getCurrentUser(),
+  ]);
+
+  if (!sessionUser) redirect("/login");
+
+  const [user, variant] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: sessionUser.id },
+      select: { pointsBalance: true },
+    }),
+    variantId
+      ? prisma.productVariant.findUnique({
+          where: { id: variantId },
+          include: { product: true },
+        })
+      : null,
+  ]);
+
+  if (!user) redirect("/login");
+  if (variantId && (!variant || variant.product.status !== "ACTIVE")) notFound();
+  if (!variant) redirect("/buy-points");
+
+  const supportContact =
+    settings.contacts.find((contact) => contact.platform === "QQ群") ??
+    settings.contacts.find((contact) => contact.platform === "QQ");
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <div className="mb-6">
-        <Link href="/" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
-          ← 返回首页
-        </Link>
-        <h1 className="mt-4 text-2xl font-extrabold">卡密兑换</h1>
+    <div className="relative px-4 py-10">
+      <div className="pointer-events-none absolute left-1/2 top-4 w-full max-w-6xl -translate-x-1/2 px-4">
+        <div className="pointer-events-auto">
+          <BackButton />
+        </div>
       </div>
 
-      <CardRedeemForm product={product} variant={variant} expectedProductType={variant} />
+      <div className="mx-auto max-w-3xl">
+        <PointProductRedeemForm
+          variantId={variant.id}
+          productName={variant.product.name}
+          variantName={variant.name}
+          pointsCost={pointsForPrice(variant.price)}
+          priceCents={variant.price}
+          currency={variant.currency}
+          balance={user.pointsBalance}
+          supportContact={supportContact}
+        />
+      </div>
     </div>
   );
 }
