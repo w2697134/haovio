@@ -100,13 +100,13 @@ export function PointProductRedeemForm({
 
   async function submit() {
     if (buttonBusy) return;
-    if (insufficient) return;
 
-    const checkedSession = isSessionDelivery ? parseSessionAccount(sessionJson) : null;
-    if (checkedSession) {
+    if (isSessionDelivery && !sessionCheck?.ok) {
+      const checkedSession = parseSessionAccount(sessionJson);
       setSessionCheck(checkedSession);
-      if (!checkedSession.ok) return;
+      return;
     }
+    if (insufficient) return;
 
     setResult(null);
     setLoading(true);
@@ -121,7 +121,7 @@ export function PointProductRedeemForm({
           contactWechat: contactType === "WECHAT" ? contactValue.trim() || undefined : undefined,
           deliveryMode: activeDeliveryMode,
           cookieJson: isSessionDelivery ? sessionJson : undefined,
-          cookieAccount: isSessionDelivery && checkedSession?.ok ? checkedSession.account : undefined,
+          cookieAccount: isSessionDelivery && sessionCheck?.ok ? sessionCheck.account : undefined,
         }),
       });
       const data = await res.json();
@@ -145,6 +145,7 @@ export function PointProductRedeemForm({
   function primaryButtonText() {
     if (redirecting) return "正在提交...";
     if (loading) return "提交中...";
+    if (isSessionDelivery && !sessionCheck?.ok) return "检测 Cookie";
     if (insufficient) return "余额不足";
     return "提交订单";
   }
@@ -295,7 +296,7 @@ export function PointProductRedeemForm({
 
         <button
           type="button"
-          disabled={buttonBusy || insufficient}
+          disabled={buttonBusy || (insufficient && !(isSessionDelivery && !sessionCheck?.ok))}
           onClick={submit}
           className="btn-primary w-full py-3 disabled:cursor-not-allowed disabled:opacity-60"
         >
