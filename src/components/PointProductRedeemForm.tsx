@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
 import { formatMoney } from "@/lib/money";
@@ -374,6 +375,18 @@ export function PointProductRedeemForm({
 
               {isSessionDelivery ? (
                 <>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm font-semibold text-[var(--foreground)]">
+                      粘贴完整 ChatGPT Session JSON
+                    </p>
+                    <Link
+                      href="/session-guide"
+                      target="_blank"
+                      className="inline-flex items-center justify-center rounded-lg border border-[var(--primary)]/20 bg-white px-3 py-2 text-sm font-bold text-[var(--primary)] transition hover:border-[var(--primary)] hover:bg-white/80"
+                    >
+                      不会获取？看教程
+                    </Link>
+                  </div>
                   <textarea
                     className="input mt-3 min-h-40 bg-white font-mono text-xs"
                     placeholder="ChatGPT Session JSON"
