@@ -82,7 +82,7 @@ export async function POST(req: Request) {
         model,
         messages: [{ role: "system", content: system }, ...parsed.data.messages],
         temperature: 0.3,
-        max_tokens: 220,
+        max_tokens: 320,
         stream: false,
       }),
       signal: controller.signal,
