@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { emitClientEvent } from "@/lib/clientEvents";
 
 type StatusPayload = {
   status: string;
@@ -45,6 +46,7 @@ export function PointPurchaseStatus({
           setStatus(data.status);
           setMessage(statusMessage(data.status));
           if (data.status === "PAID") {
+            emitClientEvent("balanceChanged");
             router.refresh();
             return;
           }

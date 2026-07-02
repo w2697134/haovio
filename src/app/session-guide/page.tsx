@@ -36,11 +36,9 @@ const steps = [
 
 export default function SessionGuidePage() {
   return (
-    <div className="relative px-4 py-10">
-      <div className="pointer-events-none absolute left-1/2 top-4 w-full max-w-6xl -translate-x-1/2 px-4">
-        <div className="pointer-events-auto">
-          <BackButton />
-        </div>
+    <div className="px-4 py-8 sm:py-10">
+      <div className="mx-auto mb-5 max-w-6xl">
+        <BackButton />
       </div>
 
       <div className="mx-auto max-w-5xl">

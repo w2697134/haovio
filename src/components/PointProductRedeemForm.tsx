@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
+import { emitClientEvent } from "@/lib/clientEvents";
 import { formatMoney } from "@/lib/money";
 
 type ResultState =
@@ -106,6 +107,9 @@ export function PointProductRedeemForm({
   const insufficient = balance < pointsCost;
   const shortfallCents = Math.max(pointsCost - balance, 0);
   const shortfallLabel = formatMoney(shortfallCents).replace(/\.00$/, "");
+  const costLabel = formatMoney(pointsCost).replace(/\.00$/, "");
+  const balanceLabel = formatMoney(balance).replace(/\.00$/, "");
+  const afterBalanceLabel = formatMoney(Math.max(balance - pointsCost, 0)).replace(/\.00$/, "");
   const buttonBusy = loading || redirecting;
   const activeDeliveryMode = allowsSessionDelivery ? deliveryMode : "MANUAL";
   const isSessionDelivery = activeDeliveryMode === "COOKIE";
@@ -152,7 +156,9 @@ export function PointProductRedeemForm({
       }
 
       setRedirecting(true);
-      setResult({ ok: true, message: "提交成功，马上生成订单号..." });
+      emitClientEvent("balanceChanged");
+      router.refresh();
+      setResult({ ok: true, message: "购买成功，正在生成订单号..." });
       startTransition(() => {
         router.push(`/redeem/success/${data.id}`);
       });
@@ -168,7 +174,7 @@ export function PointProductRedeemForm({
     if (loading) return "提交中...";
     if (isSessionDelivery && !sessionCheck?.ok) return "检测 Cookie";
     if (insufficient) return `补差额充值 ${shortfallLabel}`;
-    return "提交订单";
+    return `确认购买，消耗 ${costLabel}`;
   }
 
   async function createShortfallRecharge() {
@@ -288,7 +294,10 @@ export function PointProductRedeemForm({
                   </a>
                   <button
                     type="button"
-                    onClick={() => router.refresh()}
+                    onClick={() => {
+                      emitClientEvent("balanceChanged");
+                      router.refresh();
+                    }}
                     className="btn-primary py-3 text-sm"
                   >
                     已支付，刷新余额
@@ -319,6 +328,21 @@ export function PointProductRedeemForm({
         <div className="rounded-xl border border-[var(--border)] bg-white p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-lg font-bold text-[var(--foreground)]">{productName} / {variantName}</div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm sm:grid-cols-3">
+          <div>
+            <div className="text-[var(--muted)]">当前余额</div>
+            <div className="mt-1 font-black tabular-nums text-[var(--foreground)]">{balanceLabel}</div>
+          </div>
+          <div>
+            <div className="text-[var(--muted)]">本次消耗</div>
+            <div className="mt-1 font-black tabular-nums text-rose-600">-{costLabel}</div>
+          </div>
+          <div>
+            <div className="text-[var(--muted)]">提交后余额</div>
+            <div className="mt-1 font-black tabular-nums text-[var(--foreground)]">{afterBalanceLabel}</div>
           </div>
         </div>
 

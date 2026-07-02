@@ -239,6 +239,7 @@ function AccountMenu({ user, active = false }: { user: SessionUser; active?: boo
 
 export function Header({ user, balance = 0 }: { user: SessionUser | null; balance?: number }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [loginOpen, setLoginOpen] = useState(false);
 
   useEffect(() => {
@@ -248,6 +249,11 @@ export function Header({ user, balance = 0 }: { user: SessionUser | null; balanc
 
     return listenClientEvent("openLoginModal", openLoginModal);
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    return listenClientEvent("balanceChanged", () => router.refresh());
+  }, [router, user]);
 
   function openCustomerService() {
     emitClientEvent("openCustomerService");
@@ -292,7 +298,7 @@ export function Header({ user, balance = 0 }: { user: SessionUser | null; balanc
             在线客服
           </button>
 
-          {user && user.role !== "ADMIN" ? (
+          {user ? (
             <Link href="/invite" className={pill(pathname.startsWith("/invite"))}>
               <NavIcon name="gift" />
               邀请有礼

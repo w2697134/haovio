@@ -1,6 +1,7 @@
 export const CLIENT_EVENTS = {
   openCustomerService: "open-customer-service",
   openLoginModal: "open-login-modal",
+  balanceChanged: "balance-changed",
 } as const;
 
 export type ClientEventName = keyof typeof CLIENT_EVENTS;

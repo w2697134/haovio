@@ -6,6 +6,7 @@ import { formatCnyBalance } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
 import { CheckIcon } from "@/components/icons";
 import { RedeemOrderCopyPanel } from "@/components/RedeemOrderCopyPanel";
+import { BalanceRefreshOnMount } from "@/components/BalanceRefreshOnMount";
 
 export const dynamic = "force-dynamic";
 
@@ -35,33 +36,32 @@ export default async function RedeemSuccessPage({
   if (!redeem) notFound();
   if (!user || redeem.userId !== user.id) notFound();
 
-  const supportGroup = settings.contacts.find((contact) => contact.platform === "QQ群");
-  const supportFallback = settings.contacts.find((contact) => contact.platform === "QQ");
-  const supportContact = supportGroup ?? supportFallback ?? null;
-  const supportLabel = supportContact?.platform === "QQ群" ? "售后群" : supportContact?.platform ?? "售后联系";
-  const handlerName = supportContact?.platform === "QQ群" ? "群主" : "客服";
+  const supportGroup = settings.contacts.find((contact) => contact.platform === "QQ群")?.account ?? null;
+  const supportWechat = settings.contacts.find((contact) => contact.platform === "微信")?.account ?? null;
   const details = `${redeem.productName} / ${redeem.variantName} / ${formatCnyBalance(redeem.pointsCost)}`;
   const createdAtText = new Date(redeem.createdAt).toLocaleString("zh-CN");
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-2xl items-center px-4 py-10">
-      <div className="card w-full space-y-6 p-8 text-center">
+      <BalanceRefreshOnMount />
+      <div className="card w-full space-y-6 p-6 text-center sm:p-8">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
           <CheckIcon className="h-7 w-7" strokeWidth={2.4} />
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-2xl font-extrabold text-[var(--foreground)]">提交成功</h1>
-          <p className="text-sm text-[var(--muted)]">订单号已生成，复制后发给{handlerName}处理。</p>
+          <h1 className="text-2xl font-extrabold text-[var(--foreground)]">购买成功</h1>
+          <p className="text-sm leading-6 text-[var(--muted)]">
+            这是人工交付订单，已进入处理队列。
+          </p>
         </div>
 
         <RedeemOrderCopyPanel
           orderId={redeem.id}
           details={details}
           createdAtText={createdAtText}
-          supportLabel={supportLabel}
-          supportAccount={supportContact?.account ?? null}
-          handlerName={handlerName}
+          qqGroupAccount={supportGroup}
+          wechatAccount={supportWechat}
         />
 
         <div className="flex flex-col gap-3 sm:flex-row">
