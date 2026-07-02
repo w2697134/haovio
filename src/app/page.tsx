@@ -25,10 +25,12 @@ export default async function Home() {
     getCurrentUser(),
   ]);
   const qqGroup = settings.contacts.find((contact) => contact.platform === "QQ群")?.account;
+  const supportWechat = settings.contacts.find((contact) => contact.platform === "微信")?.account ?? "f2697134653";
+  const supportQq = settings.contacts.find((contact) => contact.platform === "QQ")?.account ?? "2697134653";
 
   return (
     <div className="mx-auto max-w-6xl px-4">
-      <HomeHero qqGroup={qqGroup} />
+      <HomeHero qqGroup={qqGroup} supportWechat={supportWechat} supportQq={supportQq} />
 
       {categories.map((cat) => (
         <section key={cat.id} className="mb-14">

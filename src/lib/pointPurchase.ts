@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
-export const POINT_PURCHASE_AMOUNTS = [5, 10, 50, 100, 500, 1000] as const;
-export const MIN_POINT_PURCHASE_AMOUNT_CENTS = 500;
+export const POINT_PURCHASE_AMOUNTS = [1, 5, 10, 50, 100, 500, 1000] as const;
+export const MIN_POINT_PURCHASE_AMOUNT_CENTS = 100;
 export const MAX_POINT_PURCHASE_AMOUNT_CENTS = 100_000_000;
 export const POINT_PURCHASE_TTL_MINUTES = 10;
 

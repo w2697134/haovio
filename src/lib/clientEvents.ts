@@ -1,6 +1,5 @@
 export const CLIENT_EVENTS = {
   openCustomerService: "open-customer-service",
-  openCookieTutorial: "open-cookie-tutorial",
   openLoginModal: "open-login-modal",
 } as const;
 

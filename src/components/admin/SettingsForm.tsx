@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Contact } from "@/lib/settings";
 
-const PLATFORMS = ["QQ", "QQ群", "Telegram", "WhatsApp", "邮箱"];
+const PLATFORMS = ["微信", "QQ", "QQ群", "Telegram", "WhatsApp", "邮箱"];
 
 export function SettingsForm({
   initialContacts,

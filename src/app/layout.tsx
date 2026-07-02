@@ -4,7 +4,6 @@ import "./globals.css";
 import { CartProvider } from "@/components/CartProvider";
 import { Header } from "@/components/Header";
 import { CustomerServiceBot } from "@/components/CustomerServiceBot";
-import { CookieTutorialModal } from "@/components/CookieTutorialModal";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
@@ -37,7 +36,6 @@ export default async function RootLayout({
           <Header user={user} balance={pointUser?.pointsBalance ?? 0} />
           <main className="flex-1">{children}</main>
           <CustomerServiceBot contacts={settings.contacts} />
-          <CookieTutorialModal />
         </CartProvider>
       </body>
     </html>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AuthForm } from "@/components/AuthForm";
 
@@ -26,12 +26,6 @@ function CloseIcon() {
 }
 
 export function LoginModal({ open, onClose }: LoginModalProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
@@ -41,7 +35,7 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
     };
   }, [open]);
 
-  if (!open || !mounted) return null;
+  if (!open || typeof document === "undefined") return null;
 
   return createPortal(
     <div

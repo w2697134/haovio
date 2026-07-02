@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { formatCnyBalance } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
 import { CheckIcon } from "@/components/icons";
+import { RedeemOrderCopyPanel } from "@/components/RedeemOrderCopyPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,9 @@ export default async function RedeemSuccessPage({
   const supportFallback = settings.contacts.find((contact) => contact.platform === "QQ");
   const supportContact = supportGroup ?? supportFallback ?? null;
   const supportLabel = supportContact?.platform === "QQ群" ? "售后群" : supportContact?.platform ?? "售后联系";
+  const handlerName = supportContact?.platform === "QQ群" ? "群主" : "客服";
+  const details = `${redeem.productName} / ${redeem.variantName} / ${formatCnyBalance(redeem.pointsCost)}`;
+  const createdAtText = new Date(redeem.createdAt).toLocaleString("zh-CN");
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-2xl items-center px-4 py-10">
@@ -48,27 +52,17 @@ export default async function RedeemSuccessPage({
 
         <div className="space-y-2">
           <h1 className="text-2xl font-extrabold text-[var(--foreground)]">提交成功</h1>
-          <p className="text-sm text-[var(--muted)]">订单已提交，请保存订单号并加入售后群。</p>
+          <p className="text-sm text-[var(--muted)]">订单号已生成，复制后发给{handlerName}处理。</p>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-5">
-          <div className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">订单号</div>
-          <div className="mt-3 break-all font-mono text-lg font-bold text-[var(--foreground)]">{redeem.id}</div>
-          <div className="mt-3 text-sm text-[var(--muted)]">
-            {redeem.productName} / {redeem.variantName} / {formatCnyBalance(redeem.pointsCost)}
-          </div>
-          <div className="mt-2 text-xs text-[var(--muted)]">
-            提交时间：{new Date(redeem.createdAt).toLocaleString("zh-CN")}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
-          <div className="text-sm font-semibold text-[var(--foreground)]">{supportLabel}</div>
-          <div className="mt-3 font-mono text-2xl font-black text-[var(--accent)]">
-            {supportContact?.account ?? "暂未配置"}
-          </div>
-          <p className="mt-3 text-sm text-[var(--muted)]">有问题直接找群主，发送订单号即可处理。</p>
-        </div>
+        <RedeemOrderCopyPanel
+          orderId={redeem.id}
+          details={details}
+          createdAtText={createdAtText}
+          supportLabel={supportLabel}
+          supportAccount={supportContact?.account ?? null}
+          handlerName={handlerName}
+        />
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link href="/" className="btn-primary flex-1 py-3 text-center">

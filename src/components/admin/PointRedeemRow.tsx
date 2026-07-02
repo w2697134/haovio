@@ -13,7 +13,6 @@ export type AdminPointRedeem = {
   pointsCost: number;
   contactQq: string | null;
   contactWechat: string | null;
-  deliveryMode: string;
   createdAt: string;
   user: { email: string; name: string | null };
 };
@@ -60,7 +59,7 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
     .filter(Boolean)
     .join(" / ");
   const statusText = POINT_REDEEM_STATUS_LABEL[redeem.status as keyof typeof POINT_REDEEM_STATUS_LABEL] ?? redeem.status;
-  const deliveryText = redeem.deliveryMode === "COOKIE" ? "Cookie" : "人工交付";
+  const deliveryText = "人工交付";
   const createdAt = new Date(redeem.createdAt).toLocaleString("zh-CN");
 
   return (

@@ -1,10 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { emitClientEvent } from "@/lib/clientEvents";
 
 type HomeHeroProps = {
   qqGroup?: string | null;
+  supportWechat?: string | null;
+  supportQq?: string | null;
 };
 
 function HeroDecor() {
@@ -70,10 +73,33 @@ function HeroDecor() {
   );
 }
 
-export function HomeHero({ qqGroup }: HomeHeroProps) {
+export function HomeHero({ qqGroup, supportWechat, supportQq }: HomeHeroProps) {
+  const [copied, setCopied] = useState("");
+
   function openCustomerService() {
     emitClientEvent("openCustomerService");
   }
+
+  async function copyContact(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+    setCopied(label);
+    window.setTimeout(() => setCopied(""), 1500);
+  }
+
+  const contactItems = [
+    supportWechat ? { label: "客服微信", value: supportWechat } : null,
+    supportQq ? { label: "客服QQ", value: supportQq } : null,
+    qqGroup ? { label: "QQ群", value: qqGroup } : null,
+  ].filter((item): item is { label: string; value: string } => Boolean(item));
 
   return (
     <section className="haovio-hero relative my-10 overflow-hidden rounded-3xl border border-white/70 p-10 md:p-16">
@@ -101,10 +127,21 @@ export function HomeHero({ qqGroup }: HomeHeroProps) {
             在线客服
           </span>
         </button>
-        {qqGroup ? (
-          <div className="-mt-3 inline-flex items-center gap-2 rounded-full bg-white/55 px-4 py-1.5 text-sm font-medium text-slate-500 ring-1 ring-white/70 backdrop-blur">
-            <span className="text-slate-400">QQ群</span>
-            <span className="font-semibold tracking-wide text-slate-600">{qqGroup}</span>
+        {contactItems.length > 0 ? (
+          <div className="-mt-3 flex max-w-full flex-wrap items-center justify-center gap-2">
+            {contactItems.map((item) => (
+              <button
+                type="button"
+                key={item.label}
+                onClick={() => copyContact(item.value, item.label)}
+                className="inline-flex min-h-9 items-center gap-2 rounded-full bg-white/60 px-4 py-1.5 text-sm font-medium text-slate-500 ring-1 ring-white/70 backdrop-blur transition hover:bg-white hover:text-slate-700 hover:ring-slate-200"
+                title={`复制${item.label}`}
+              >
+                <span className="text-slate-400">{item.label}</span>
+                <span className="font-semibold tracking-wide text-slate-700">{item.value}</span>
+                <span className="text-xs text-indigo-500">{copied === item.label ? "已复制" : "一键复制"}</span>
+              </button>
+            ))}
           </div>
         ) : null}
       </div>

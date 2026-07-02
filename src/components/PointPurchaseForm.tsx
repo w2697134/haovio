@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney, parseCnyToCents } from "@/lib/money";
 
-const POINT_PURCHASE_AMOUNTS = [5, 10, 50, 100, 500, 1000] as const;
-const MIN_CUSTOM_AMOUNT_CENTS = 500;
+const POINT_PURCHASE_AMOUNTS = [1, 5, 10, 50, 100, 500, 1000] as const;
+const MIN_CUSTOM_AMOUNT_CENTS = 100;
 const MAX_CUSTOM_AMOUNT_CENTS = 100_000_000;
 
 type AmountSelection = (typeof POINT_PURCHASE_AMOUNTS)[number] | "custom";
@@ -61,7 +61,7 @@ function WechatIcon({ className = "" }: { className?: string }) {
 
 export function PointPurchaseForm() {
   const router = useRouter();
-  const [amountSelection, setAmountSelection] = useState<AmountSelection>(50);
+  const [amountSelection, setAmountSelection] = useState<AmountSelection>(1);
   const [customAmount, setCustomAmount] = useState("");
   const [paymentType, setPaymentType] = useState<"1" | "2">("2");
   const [loading, setLoading] = useState(false);
@@ -76,7 +76,7 @@ export function PointPurchaseForm() {
   async function createOrder() {
     if (loading) return;
     if (!validAmount || amountCents === null) {
-      setResult({ ok: false, message: "最低充值金额为 ￥5" });
+      setResult({ ok: false, message: "最低充值金额为 ￥1" });
       return;
     }
     setLoading(true);

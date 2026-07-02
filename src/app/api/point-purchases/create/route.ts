@@ -96,7 +96,7 @@ export async function POST(req: Request) {
   try {
     assertAllowedPointPurchaseAmount(amountCents);
   } catch {
-    return NextResponse.json({ error: "最低充值金额为 ￥5" }, { status: 400 });
+    return NextResponse.json({ error: "最低充值金额为 ￥1" }, { status: 400 });
   }
 
   const orderNo = generatePointPurchaseNo();

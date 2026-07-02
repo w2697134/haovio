@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  encryptSensitiveText,
-  serializeCookieMeta,
-  validateChatGptCookieJson,
-} from "@/lib/cookieTools";
+import { encryptSensitiveText, serializeCookieMeta } from "@/lib/cookieTools";
 import { prisma } from "@/lib/db";
 import { pointsForPrice } from "@/lib/points";
 
@@ -14,23 +10,11 @@ const schema = z
     variantId: z.string().min(1, "请选择商品"),
     contactQq: z.string().trim().max(40, "QQ 过长").optional(),
     contactWechat: z.string().trim().max(80, "微信过长").optional(),
-    deliveryMode: z.enum(["COOKIE", "MANUAL"]).default("MANUAL"),
-    cookieJson: z.string().trim().optional(),
-    cookieAccount: z
-      .object({
-        email: z.string().trim().max(120).nullable().optional(),
-        name: z.string().trim().max(120).nullable().optional(),
-        id: z.string().trim().max(120).nullable().optional(),
-      })
-      .optional(),
+    deliveryMode: z.literal("MANUAL").default("MANUAL"),
   })
   .refine((data) => Boolean(data.contactQq || data.contactWechat), {
     message: "QQ 和微信至少填写一个",
     path: ["contactQq"],
-  })
-  .refine((data) => data.deliveryMode === "MANUAL" || Boolean(data.cookieJson && data.cookieJson.length >= 2), {
-    message: "请粘贴 Cookie",
-    path: ["cookieJson"],
   });
 
 export async function POST(req: Request) {
@@ -44,6 +28,15 @@ export async function POST(req: Request) {
   }
 
   const data = parsed.data;
+  const cookieMeta = {
+    count: 0,
+    domains: [],
+    totalValueChars: 0,
+    formatStatus: "VALID_FORMAT" as const,
+    issues: [],
+    deliveryMode: "MANUAL" as const,
+  };
+
   const variant = await prisma.productVariant.findUnique({
     where: { id: data.variantId },
     include: { product: true },
@@ -53,24 +46,6 @@ export async function POST(req: Request) {
   }
 
   const pointsCost = pointsForPrice(variant.price);
-  const isManualDelivery = data.deliveryMode === "MANUAL";
-  const cookieCheck = isManualDelivery ? null : validateChatGptCookieJson(data.cookieJson ?? "");
-  if (!isManualDelivery && (!cookieCheck?.ok || !cookieCheck.header || !cookieCheck.normalizedJson)) {
-    return NextResponse.json(
-      { error: cookieCheck?.error ?? "Cookie 检测未通过", meta: cookieCheck?.meta },
-      { status: 400 }
-    );
-  }
-
-  const cookieHeader = cookieCheck?.header ?? "";
-  const cookieMeta = cookieCheck?.meta ?? {
-    count: 0,
-    domains: [],
-    totalValueChars: 0,
-    formatStatus: "VALID_FORMAT" as const,
-    issues: [],
-    deliveryMode: "MANUAL" as const,
-  };
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -95,17 +70,12 @@ export async function POST(req: Request) {
           pointsCost,
           contactQq: data.contactQq || null,
           contactWechat: data.contactWechat || null,
-          deliveryMode: data.deliveryMode,
-          accountInfo: JSON.stringify({
-            cookieAccount: isManualDelivery ? null : data.cookieAccount ?? null,
-          }),
-          cookieJsonCipher: encryptSensitiveText(isManualDelivery ? "人工交付" : data.cookieJson ?? ""),
-          cookieHeaderCipher: encryptSensitiveText(cookieHeader),
-          cookieMeta: serializeCookieMeta({
-            ...cookieMeta,
-            deliveryMode: isManualDelivery ? "MANUAL" : "COOKIE",
-          }),
-          adminNote: isManualDelivery ? "人工交付" : null,
+          deliveryMode: "MANUAL",
+          accountInfo: JSON.stringify({ deliveryMode: "MANUAL" }),
+          cookieJsonCipher: encryptSensitiveText("人工交付"),
+          cookieHeaderCipher: encryptSensitiveText(""),
+          cookieMeta: serializeCookieMeta(cookieMeta),
+          adminNote: "人工交付",
         },
         select: { id: true },
       });
