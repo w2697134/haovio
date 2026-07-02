@@ -117,7 +117,7 @@ export default async function AccountPage() {
       id: `redeem-${redeem.id}`,
       date: redeem.createdAt,
       title: redeem.variantName,
-      meta: `${formatBalance(redeem.pointsCost)} · 人工处理`,
+      meta: `${formatBalance(redeem.pointsCost)} · ${redeem.deliveryMode === "COOKIE" ? "Session提交" : "人工处理"}`,
       tag: POINT_REDEEM_STATUS_LABEL[redeem.status as keyof typeof POINT_REDEEM_STATUS_LABEL] ?? redeem.status,
       tagClass: REDEEM_STATUS_STYLE[redeem.status] ?? "bg-slate-100 text-slate-600",
     })),

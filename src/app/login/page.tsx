@@ -7,8 +7,10 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ ref?: string }>;
 }) {
-  const user = await getCurrentUser();
-  if (user) redirect(user.name?.trim() ? "/" : "/profile-setup");
   const { ref } = await searchParams;
+  const user = await getCurrentUser();
+  if (user) {
+    redirect(user.name?.trim() ? "/" : `/profile-setup${ref ? `?ref=${encodeURIComponent(ref)}` : ""}`);
+  }
   return <AuthForm mode="login" defaultInviteCode={ref ?? ""} />;
 }

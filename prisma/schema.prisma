@@ -234,7 +234,7 @@ model PointRedeem {
   pointsCost         Int
   contactQq          String?
   contactWechat      String?
-  deliveryMode       String    @default("MANUAL") // MANUAL
+  deliveryMode       String    @default("MANUAL") // MANUAL | COOKIE
   accountInfo        String    @default("{}")
   cookieJsonCipher   String?
   cookieHeaderCipher String?

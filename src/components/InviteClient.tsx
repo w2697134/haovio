@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CheckIcon, CopyIcon } from "@/components/icons";
 
 function CopyButton({ value, label = "复制" }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -9,7 +10,12 @@ function CopyButton({ value, label = "复制" }: { value: string; label?: string
     try {
       await navigator.clipboard.writeText(value);
     } catch {
-      // 退化方案: 选中提示
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
@@ -19,9 +25,11 @@ function CopyButton({ value, label = "复制" }: { value: string; label?: string
     <button
       type="button"
       onClick={copy}
-      className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+      title={label}
+      aria-label={label}
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-900 text-white transition hover:bg-slate-800"
     >
-      {copied ? "已复制" : label}
+      {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
     </button>
   );
 }

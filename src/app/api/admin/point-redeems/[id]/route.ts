@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
+import { decryptSensitiveText } from "@/lib/cookieTools";
 import { prisma } from "@/lib/db";
 import { POINT_REDEEM_STATUSES, type PointRedeemStatus } from "@/lib/points";
 
@@ -50,4 +51,46 @@ export async function PATCH(
   await prisma.pointRedeem.update({ where: { id }, data: updateData });
 
   return NextResponse.json({ ok: true });
+}
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "无权限" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const redeem = await prisma.pointRedeem.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      deliveryMode: true,
+      accountInfo: true,
+      cookieJsonCipher: true,
+      cookieMeta: true,
+    },
+  });
+  if (!redeem) return NextResponse.json({ error: "订单不存在" }, { status: 404 });
+  if (redeem.deliveryMode !== "COOKIE") {
+    return NextResponse.json({ error: "该订单为人工交付，无 Session" }, { status: 400 });
+  }
+  if (!redeem.cookieJsonCipher) {
+    return NextResponse.json({ error: "该订单没有保存 Session" }, { status: 404 });
+  }
+
+  try {
+    return NextResponse.json({
+      ok: true,
+      id: redeem.id,
+      sessionJson: decryptSensitiveText(redeem.cookieJsonCipher),
+      accountInfo: JSON.parse(redeem.accountInfo || "{}"),
+      cookieMeta: JSON.parse(redeem.cookieMeta || "{}"),
+    });
+  } catch {
+    return NextResponse.json({ error: "Session 解密失败" }, { status: 500 });
+  }
 }

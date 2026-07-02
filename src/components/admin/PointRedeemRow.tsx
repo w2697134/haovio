@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CheckIcon, CopyIcon } from "@/components/icons";
 import { formatCnyBalance } from "@/lib/money";
 import { POINT_REDEEM_STATUS_LABEL } from "@/lib/points";
 
@@ -13,6 +14,7 @@ export type AdminPointRedeem = {
   pointsCost: number;
   contactQq: string | null;
   contactWechat: string | null;
+  deliveryMode: string;
   createdAt: string;
   user: { email: string; name: string | null };
 };
@@ -28,6 +30,9 @@ const STATUS_CLASS: Record<string, string> = {
 export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionText, setSessionText] = useState("");
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
   async function patch(payload: Record<string, unknown>) {
@@ -52,6 +57,41 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
     }
   }
 
+  async function revealSession() {
+    if (sessionLoading) return;
+    setError("");
+    setSessionLoading(true);
+    try {
+      const res = await fetch("/api/admin/point-redeems/" + redeem.id);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "读取 Session 失败");
+        return;
+      }
+      setSessionText(data.sessionJson ?? "");
+    } catch {
+      setError("读取 Session 失败");
+    } finally {
+      setSessionLoading(false);
+    }
+  }
+
+  async function copySession() {
+    if (!sessionText) return;
+    try {
+      await navigator.clipboard.writeText(sessionText);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = sessionText;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
+
   const contact = [
     redeem.contactQq ? "QQ " + redeem.contactQq : "",
     redeem.contactWechat ? "微信 " + redeem.contactWechat : "",
@@ -59,7 +99,8 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
     .filter(Boolean)
     .join(" / ");
   const statusText = POINT_REDEEM_STATUS_LABEL[redeem.status as keyof typeof POINT_REDEEM_STATUS_LABEL] ?? redeem.status;
-  const deliveryText = "人工交付";
+  const isSessionDelivery = redeem.deliveryMode === "COOKIE";
+  const deliveryText = isSessionDelivery ? "Session提交" : "人工交付";
   const createdAt = new Date(redeem.createdAt).toLocaleString("zh-CN");
 
   return (
@@ -91,6 +132,31 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
             {formatCnyBalance(redeem.pointsCost)}
           </div>
           <div className="flex flex-wrap gap-2">
+            {isSessionDelivery ? (
+              <button
+                disabled={sessionLoading}
+                onClick={sessionText ? copySession : revealSession}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-100 px-3 py-2 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50 disabled:opacity-50"
+              >
+                {sessionText ? (
+                  copied ? (
+                    <>
+                      <CheckIcon className="h-4 w-4" />
+                      已复制
+                    </>
+                  ) : (
+                    <>
+                      <CopyIcon className="h-4 w-4" />
+                      复制 Session
+                    </>
+                  )
+                ) : sessionLoading ? (
+                  "读取中"
+                ) : (
+                  "查看 Session"
+                )}
+              </button>
+            ) : null}
             <button
               disabled={loading}
               onClick={() => patch({ status: "PROCESSING" })}
@@ -115,6 +181,17 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
           </div>
         </div>
       </div>
+
+      {sessionText ? (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div className="mb-2 text-xs font-semibold text-slate-500">直充 Session</div>
+          <textarea
+            readOnly
+            value={sessionText}
+            className="h-28 w-full resize-y rounded-lg border border-slate-200 bg-white p-3 font-mono text-xs text-slate-700 outline-none"
+          />
+        </div>
+      ) : null}
 
       {error ? <p className="mt-2 text-sm text-[var(--danger)]">{error}</p> : null}
     </div>

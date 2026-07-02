@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { emitClientEvent } from "@/lib/clientEvents";
+import { CheckIcon, CopyIcon } from "@/components/icons";
 
 type HomeHeroProps = {
   qqGroup?: string | null;
@@ -96,10 +97,10 @@ export function HomeHero({ qqGroup, supportWechat, supportQq }: HomeHeroProps) {
   }
 
   const contactItems = [
-    supportWechat ? { label: "客服微信", value: supportWechat } : null,
-    supportQq ? { label: "客服QQ", value: supportQq } : null,
-    qqGroup ? { label: "QQ群", value: qqGroup } : null,
-  ].filter((item): item is { label: string; value: string } => Boolean(item));
+    supportWechat ? { label: "客服微信", value: supportWechat, prominent: false } : null,
+    qqGroup ? { label: "售后QQ群", value: qqGroup, prominent: true } : null,
+    supportQq ? { label: "客服QQ", value: supportQq, prominent: false } : null,
+  ].filter((item): item is { label: string; value: string; prominent: boolean } => Boolean(item));
 
   return (
     <section className="haovio-hero relative my-10 overflow-hidden rounded-3xl border border-white/70 p-10 md:p-16">
@@ -134,12 +135,38 @@ export function HomeHero({ qqGroup, supportWechat, supportQq }: HomeHeroProps) {
                 type="button"
                 key={item.label}
                 onClick={() => copyContact(item.value, item.label)}
-                className="inline-flex min-h-9 items-center gap-2 rounded-full bg-white/60 px-4 py-1.5 text-sm font-medium text-slate-500 ring-1 ring-white/70 backdrop-blur transition hover:bg-white hover:text-slate-700 hover:ring-slate-200"
+                className={
+                  "inline-flex items-center gap-2 rounded-full font-medium backdrop-blur transition " +
+                  (item.prominent
+                    ? "min-h-11 bg-white px-5 py-2 text-base text-indigo-700 shadow-[0_10px_28px_rgba(79,70,229,0.18)] ring-2 ring-indigo-300 hover:ring-indigo-400"
+                    : "min-h-9 bg-white/60 px-4 py-1.5 text-sm text-slate-500 ring-1 ring-white/70 hover:bg-white hover:text-slate-700 hover:ring-slate-200")
+                }
                 title={`复制${item.label}`}
+                aria-label={`复制${item.label} ${item.value}`}
               >
-                <span className="text-slate-400">{item.label}</span>
-                <span className="font-semibold tracking-wide text-slate-700">{item.value}</span>
-                <span className="text-xs text-indigo-500">{copied === item.label ? "已复制" : "一键复制"}</span>
+                <span className={item.prominent ? "font-semibold text-indigo-500" : "text-slate-400"}>
+                  {item.label}
+                </span>
+                <span className={item.prominent ? "font-black tracking-wide text-indigo-800" : "font-semibold tracking-wide text-slate-700"}>
+                  {item.value}
+                </span>
+                <span
+                  className={
+                    "grid h-6 w-6 shrink-0 place-items-center rounded-full transition " +
+                    (copied === item.label
+                      ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200"
+                      : item.prominent
+                        ? "bg-indigo-600 text-white ring-1 ring-indigo-500"
+                        : "bg-indigo-50 text-indigo-500 ring-1 ring-indigo-100")
+                  }
+                  aria-hidden="true"
+                >
+                  {copied === item.label ? (
+                    <CheckIcon className={item.prominent ? "h-4 w-4" : "h-3.5 w-3.5"} strokeWidth={2.4} />
+                  ) : (
+                    <CopyIcon className={item.prominent ? "h-4 w-4" : "h-3.5 w-3.5"} strokeWidth={2} />
+                  )}
+                </span>
               </button>
             ))}
           </div>
