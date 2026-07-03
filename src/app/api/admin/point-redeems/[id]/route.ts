@@ -7,10 +7,57 @@ import { POINT_REDEEM_STATUSES, type PointRedeemStatus } from "@/lib/points";
 
 const schema = z
   .object({
+    action: z.enum(["refund"]).optional(),
     status: z.enum(POINT_REDEEM_STATUSES).optional(),
     adminNote: z.union([z.string().max(1000, "备注最多 1000 字"), z.null()]).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, "没有可更新的内容");
+
+async function refundPointRedeem(id: string) {
+  return prisma.$transaction(async (tx) => {
+    const redeem = await tx.pointRedeem.findUnique({
+      where: { id },
+      select: { id: true, status: true, userId: true, pointsCost: true, processedAt: true },
+    });
+    if (!redeem) return { error: "订单不存在", status: 404 };
+    if (redeem.status === "VOID") return { error: "订单已作废，不能重复退回", status: 400 };
+
+    const existingRefund = await tx.pointLedger.findFirst({
+      where: { type: "REFUND", refType: "POINT_REDEEM", refId: redeem.id },
+      select: { id: true },
+    });
+    if (existingRefund) return { error: "该订单已有退回流水，不能重复退回", status: 400 };
+
+    const now = new Date();
+    const updatedUser = await tx.user.update({
+      where: { id: redeem.userId },
+      data: { pointsBalance: { increment: redeem.pointsCost } },
+      select: { pointsBalance: true },
+    });
+
+    await tx.pointRedeem.update({
+      where: { id: redeem.id },
+      data: {
+        status: "VOID",
+        processedAt: redeem.processedAt ?? now,
+      },
+    });
+
+    await tx.pointLedger.create({
+      data: {
+        userId: redeem.userId,
+        type: "REFUND",
+        amount: redeem.pointsCost,
+        balanceAfter: updatedUser.pointsBalance,
+        note: "Admin refund point redeem",
+        refType: "POINT_REDEEM",
+        refId: redeem.id,
+      },
+    });
+
+    return { ok: true, balance: updatedUser.pointsBalance };
+  });
+}
 
 export async function PATCH(
   req: Request,
@@ -29,10 +76,23 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "参数错误" }, { status: 400 });
   }
 
+  const data = parsed.data;
+
+  if (data.action === "refund") {
+    try {
+      const result = await refundPointRedeem(id);
+      if ("error" in result) {
+        return NextResponse.json({ error: result.error }, { status: result.status });
+      }
+      return NextResponse.json(result);
+    } catch {
+      return NextResponse.json({ error: "退回失败" }, { status: 500 });
+    }
+  }
+
   const redeem = await prisma.pointRedeem.findUnique({ where: { id } });
   if (!redeem) return NextResponse.json({ error: "订单不存在" }, { status: 404 });
 
-  const data = parsed.data;
   const now = new Date();
   const updateData: {
     status?: PointRedeemStatus;

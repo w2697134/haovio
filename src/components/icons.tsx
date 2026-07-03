@@ -77,6 +77,15 @@ export function TrashIcon(props: IconProps) {
   );
 }
 
+export function UndoIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h10a6 6 0 0 1 0 12h-2" />
+    </Base>
+  );
+}
+
 export function GiftIcon(props: IconProps) {
   return (
     <Base {...props}>

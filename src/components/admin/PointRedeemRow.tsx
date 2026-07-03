@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckIcon, CloseIcon, CopyIcon, TrashIcon } from "@/components/icons";
+import { CheckIcon, CloseIcon, CopyIcon, TrashIcon, UndoIcon } from "@/components/icons";
 import { formatCnyBalance } from "@/lib/money";
 import { POINT_REDEEM_STATUS_LABEL } from "@/lib/points";
 
@@ -102,6 +102,13 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
     }
   }
 
+  async function refundRedeem() {
+    const ok = window.confirm(`确认退回兑换订单 ${redeem.id}？订单会作废，并把 ${formatCnyBalance(redeem.pointsCost)} 退回用户余额。`);
+    if (!ok) return;
+
+    await patch({ action: "refund" });
+  }
+
   async function copy(text: string, key: string) {
     if (!text) return;
     try {
@@ -178,6 +185,16 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
               className="rounded-lg border border-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50"
             >
               完成
+            </button>
+            <button
+              type="button"
+              disabled={loading || redeem.status === "VOID"}
+              onClick={refundRedeem}
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-amber-100 px-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-50 disabled:opacity-50"
+              title="作废并退回余额"
+            >
+              <UndoIcon className="h-4 w-4" />
+              退回
             </button>
             <button
               type="button"
@@ -278,6 +295,10 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
               </button>
               <button disabled={loading} onClick={() => patch({ status: "COMPLETED" })} className="rounded-lg border border-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50">
                 完成
+              </button>
+              <button disabled={loading || redeem.status === "VOID"} onClick={refundRedeem} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-100 px-3 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-50 disabled:opacity-50">
+                <UndoIcon className="h-4 w-4" />
+                退回
               </button>
             </div>
           </div>
