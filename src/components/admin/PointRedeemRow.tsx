@@ -32,6 +32,8 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
   const [loading, setLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [sessionText, setSessionText] = useState("");
+  const [cookieJsonText, setCookieJsonText] = useState("");
+  const [cookieHeaderText, setCookieHeaderText] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [copied, setCopied] = useState("");
   const [error, setError] = useState("");
@@ -70,6 +72,8 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
         return;
       }
       setSessionText(data.sessionJson ?? "");
+      setCookieJsonText(data.cookieJson ?? "");
+      setCookieHeaderText(data.cookieHeader ?? "");
     } catch {
       setError("读取 Session 失败");
     } finally {
@@ -224,32 +228,36 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-black text-slate-950">直充 Session</div>
-                    <div className="mt-1 text-xs text-slate-500">需要时再读取，避免列表里展开长文本。</div>
+                    <div className="mt-1 text-xs text-slate-500">可转换为 Cookie JSON 或 Cookie Header。</div>
                   </div>
-                  <button
-                    type="button"
-                    disabled={sessionLoading}
-                    onClick={sessionText ? () => copy(sessionText, "session") : revealSession}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-100 bg-white px-3 py-2 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50 disabled:opacity-50"
-                  >
-                    {sessionText ? (
-                      copied === "session" ? (
-                        <>
-                          <CheckIcon className="h-4 w-4" />
-                          已复制
-                        </>
-                      ) : (
-                        <>
-                          <CopyIcon className="h-4 w-4" />
-                          复制 Session
-                        </>
-                      )
-                    ) : sessionLoading ? (
-                      "读取中"
-                    ) : (
-                      "读取 Session"
-                    )}
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <SessionCopyButton
+                      disabled={sessionLoading}
+                      loading={sessionLoading}
+                      hasValue={Boolean(sessionText)}
+                      copied={copied === "session"}
+                      label="复制 Session"
+                      onClick={sessionText ? () => copy(sessionText, "session") : revealSession}
+                    />
+                    {cookieJsonText ? (
+                      <SessionCopyButton
+                        disabled={sessionLoading}
+                        hasValue
+                        copied={copied === "cookie-json"}
+                        label="复制 Cookie JSON"
+                        onClick={() => copy(cookieJsonText, "cookie-json")}
+                      />
+                    ) : null}
+                    {cookieHeaderText ? (
+                      <SessionCopyButton
+                        disabled={sessionLoading}
+                        hasValue
+                        copied={copied === "cookie-header"}
+                        label="复制 Cookie Header"
+                        onClick={() => copy(cookieHeaderText, "cookie-header")}
+                      />
+                    ) : null}
+                  </div>
                 </div>
                 {sessionText ? (
                   <textarea
@@ -276,6 +284,47 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function SessionCopyButton({
+  disabled,
+  loading = false,
+  hasValue,
+  copied,
+  label,
+  onClick,
+}: {
+  disabled?: boolean;
+  loading?: boolean;
+  hasValue: boolean;
+  copied: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-100 bg-white px-3 py-2 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50 disabled:opacity-50"
+    >
+      {copied ? (
+        <>
+          <CheckIcon className="h-4 w-4" />
+          已复制
+        </>
+      ) : hasValue ? (
+        <>
+          <CopyIcon className="h-4 w-4" />
+          {label}
+        </>
+      ) : loading ? (
+        "读取中"
+      ) : (
+        "读取 Session"
+      )}
+    </button>
   );
 }
 

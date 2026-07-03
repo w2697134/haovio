@@ -15,7 +15,7 @@ const schema = z
     contactQq: z.string().trim().max(40, "QQ 过长").optional(),
     contactWechat: z.string().trim().max(80, "微信过长").optional(),
     deliveryMode: z.enum(["COOKIE", "MANUAL"]).default("MANUAL"),
-    cookieJson: z.string().trim().optional(),
+    cookieJson: z.string().optional(),
     cookieAccount: z
       .object({
         email: z.string().trim().max(120).nullable().optional(),

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { decryptSensitiveText } from "@/lib/cookieTools";
+import { decryptSensitiveText, validateChatGptCookieJson } from "@/lib/cookieTools";
 import { prisma } from "@/lib/db";
 import { POINT_REDEEM_STATUSES, type PointRedeemStatus } from "@/lib/points";
 
@@ -71,6 +71,7 @@ export async function GET(
       deliveryMode: true,
       accountInfo: true,
       cookieJsonCipher: true,
+      cookieHeaderCipher: true,
       cookieMeta: true,
     },
   });
@@ -83,10 +84,14 @@ export async function GET(
   }
 
   try {
+    const sessionJson = decryptSensitiveText(redeem.cookieJsonCipher);
+    const normalized = validateChatGptCookieJson(sessionJson);
     return NextResponse.json({
       ok: true,
       id: redeem.id,
-      sessionJson: decryptSensitiveText(redeem.cookieJsonCipher),
+      sessionJson,
+      cookieJson: normalized.normalizedJson ?? null,
+      cookieHeader: redeem.cookieHeaderCipher ? decryptSensitiveText(redeem.cookieHeaderCipher) : normalized.header ?? null,
       accountInfo: JSON.parse(redeem.accountInfo || "{}"),
       cookieMeta: JSON.parse(redeem.cookieMeta || "{}"),
     });
