@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
 import { TierCard } from "@/components/TierCard";
 import { getCurrentUser } from "@/lib/auth";
-import { toTierCardProduct, toTierCardVariant } from "@/lib/tierCardData";
+import { prisma } from "@/lib/db";
+import { getProductSectionTitle, toTierCardProduct, toTierCardVariant } from "@/lib/tierCardData";
 
 export const dynamic = "force-dynamic";
 
@@ -47,9 +47,7 @@ export default async function CategoryPage({
           {category.products.map((product) => (
             <section key={product.id}>
               <div className="mb-3">
-                <h2 className="font-semibold">
-                  {product.slug.includes("shared") ? "共享合租" : "个人直充"}
-                </h2>
+                <h2 className="font-semibold">{getProductSectionTitle(product)}</h2>
               </div>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {product.variants.map((variant) => (

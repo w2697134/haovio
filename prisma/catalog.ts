@@ -39,4 +39,27 @@ export const catalog: SeedCategory[] = [
       },
     ],
   },
+  {
+    slug: "other-services",
+    name: "其他服务",
+    description: "海外手机号 / 验证码辅助",
+    icon: "SIM",
+    products: [
+      {
+        slug: "sms-activation",
+        name: "海外手机号接码",
+        description: "用于接收海外平台一次性验证码，适合 OpenAI / ChatGPT 注册验证。",
+        region: "Global",
+        deliveryType: "MANUAL",
+        currency: "CNY",
+        image: "/images/haovio-logo.svg",
+        accountFields: [
+          { key: "target", label: "接码用途", required: false, placeholder: "例如 OpenAI / ChatGPT" },
+        ],
+        variants: [
+          { name: "OpenAI 接码", price: 500, cost: 150 },
+        ],
+      },
+    ],
+  },
 ];

@@ -1,11 +1,13 @@
-import { prisma } from "@/lib/db";
 import { HomeHero } from "@/components/HomeHero";
 import { TierCard } from "@/components/TierCard";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { toTierCardProduct, toTierCardVariant } from "@/lib/tierCardData";
+import { getProductSectionTitle, toTierCardProduct, toTierCardVariant } from "@/lib/tierCardData";
 
 export const dynamic = "force-dynamic";
+
+const HIDDEN_HOME_CATEGORY_SLUGS = new Set(["other-services"]);
 
 export default async function Home() {
   const [categories, settings, user] = await Promise.all([
@@ -32,7 +34,7 @@ export default async function Home() {
     <div className="mx-auto max-w-6xl px-4">
       <HomeHero qqGroup={qqGroup} supportWechat={supportWechat} supportQq={supportQq} />
 
-      {categories.map((cat) => (
+      {categories.filter((cat) => !HIDDEN_HOME_CATEGORY_SLUGS.has(cat.slug)).map((cat) => (
         <section key={cat.id} className="mb-14">
           <div className="mb-7 flex items-end justify-between gap-4">
             <h2 className="relative text-3xl font-black tracking-tight sm:text-4xl">
@@ -48,9 +50,7 @@ export default async function Home() {
             {cat.products.map((product) => (
               <div key={product.id}>
                 <div className="mb-3">
-                  <h3 className="font-semibold">
-                    {product.slug.includes("shared") ? "共享合租" : "个人直充"}
-                  </h3>
+                  <h3 className="font-semibold">{getProductSectionTitle(product)}</h3>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {product.variants.map((variant) => (
@@ -67,7 +67,6 @@ export default async function Home() {
           </div>
         </section>
       ))}
-
     </div>
   );
 }

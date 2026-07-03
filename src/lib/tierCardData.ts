@@ -29,3 +29,19 @@ export function toTierCardVariant(variant: TierCardVariant): TierCardVariant {
     currency: variant.currency,
   };
 }
+
+export function getProductSectionTitle(product: Pick<TierCardProduct, "slug" | "name">) {
+  if (product.slug.includes("shared")) return "共享合租";
+  if (product.slug.includes("sms")) return "海外手机号";
+  if (product.slug.includes("chatgpt")) return "个人直充";
+  return product.name;
+}
+
+export function getTierCardUnitLabel(product: Pick<TierCardProduct, "slug">) {
+  if (product.slug.includes("sms")) return "/次";
+  return "/月";
+}
+
+export function allowsSessionDeliveryForProduct(product: Pick<TierCardProduct, "slug">) {
+  return product.slug === "chatgpt-direct";
+}

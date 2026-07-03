@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { pointsForPrice } from "@/lib/points";
 import { getSettings } from "@/lib/settings";
+import { allowsSessionDeliveryForProduct } from "@/lib/tierCardData";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export default async function RedeemPage({
   const supportContact =
     settings.contacts.find((contact) => contact.platform === "QQ群") ??
     settings.contacts.find((contact) => contact.platform === "QQ");
-  const allowsSessionDelivery = !variant.product.slug.includes("shared");
+  const allowsSessionDelivery = allowsSessionDeliveryForProduct(variant.product);
 
   return (
     <div className="relative px-4 py-10">

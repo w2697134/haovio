@@ -6,7 +6,7 @@ import type { MouseEvent } from "react";
 import { formatMoney } from "@/lib/money";
 import { getProductImage } from "@/lib/productImages";
 import { emitClientEvent } from "@/lib/clientEvents";
-import type { TierCardProduct, TierCardVariant } from "@/lib/tierCardData";
+import { getTierCardUnitLabel, type TierCardProduct, type TierCardVariant } from "@/lib/tierCardData";
 
 type TierCardProps = {
   product: TierCardProduct;
@@ -16,6 +16,7 @@ type TierCardProps = {
 
 export function TierCard({ product, variant, isLoggedIn = false }: TierCardProps) {
   const imageSrc = getProductImage(product.slug, product.image);
+  const unitLabel = getTierCardUnitLabel(product);
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     if (isLoggedIn) return;
@@ -66,7 +67,7 @@ export function TierCard({ product, variant, isLoggedIn = false }: TierCardProps
 
         <div className="mt-auto pt-3 text-xl font-extrabold text-[var(--accent)]">
           {formatMoney(variant.price, variant.currency)}
-          <span className="ml-1 text-sm font-medium text-[var(--muted)]">/月</span>
+          <span className="ml-1 text-sm font-medium text-[var(--muted)]">{unitLabel}</span>
         </div>
       </div>
     </Link>

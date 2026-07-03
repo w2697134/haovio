@@ -7,6 +7,7 @@ export const PRODUCT_IMAGES: Record<string, string> = {
   "chatgpt-pro": "/images/haovio-logo.svg",
   "chatgpt-team": "/images/haovio-logo.svg",
   "openai-api-credit": "/images/haovio-logo.svg",
+  "sms-activation": "/images/haovio-logo.svg",
 };
 
 export function getProductImage(slug: string, image?: string | null) {
