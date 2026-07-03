@@ -1,14 +1,15 @@
-import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { setSessionCookie } from "@/lib/auth";
+import { hashPassword, setSessionCookie } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { hashEmailCode, normalizeEmail } from "@/lib/emailVerification";
-import { ensureInviteCode } from "@/lib/invite";
+import { ensureInviteCode, findInviterByCode } from "@/lib/invite";
 
 const schema = z.object({
   email: z.string().trim().email("邮箱格式不正确"),
   emailCode: z.string().trim().regex(/^\d{6}$/, "请输入 6 位邮箱验证码"),
+  name: z.string().trim().min(1, "请输入用户名").max(40, "用户名过长").optional(),
+  password: z.string().min(6, "密码至少 6 位").max(72, "密码过长").optional(),
   inviteCode: z.string().trim().max(32).optional(),
 });
 
@@ -48,6 +49,20 @@ export async function POST(req: Request) {
 
   const existing = await prisma.user.findUnique({ where: { email } });
 
+  if (!existing && (!parsed.data.name || !parsed.data.password)) {
+    return NextResponse.json({ ok: true, needsRegistration: true, email });
+  }
+
+  let inviterId: string | null = null;
+  const inviteCode = parsed.data.inviteCode?.trim();
+  if (!existing && inviteCode) {
+    const inviter = await findInviterByCode(inviteCode);
+    if (!inviter) {
+      return NextResponse.json({ error: "邀请码不存在" }, { status: 400 });
+    }
+    inviterId = inviter.id;
+  }
+
   const user = await prisma.$transaction(async (tx) => {
     if (existing) {
       const updated = !existing.emailVerifiedAt
@@ -68,8 +83,10 @@ export async function POST(req: Request) {
     const created = await tx.user.create({
       data: {
         email,
+        name: parsed.data.name,
         emailVerifiedAt: new Date(),
-        passwordHash: `NO_PASSWORD:${crypto.randomUUID()}`,
+        passwordHash: await hashPassword(parsed.data.password!),
+        invitedById: inviterId,
       },
     });
 

@@ -3,22 +3,26 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+type Stage = "email" | "code" | "register" | "password";
+
 export function AuthForm({
   defaultInviteCode = "",
   variant = "page",
 }: {
-  mode: "login" | "register";
+  mode?: "login" | "register";
   defaultInviteCode?: string;
   variant?: "page" | "modal";
 }) {
   const router = useRouter();
+  const [stage, setStage] = useState<Stage>("email");
   const [email, setEmail] = useState("");
   const [emailCode, setEmailCode] = useState("");
-  const [inviteCode] = useState(defaultInviteCode);
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [inviteCode, setInviteCode] = useState(defaultInviteCode);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sendingCode, setSendingCode] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
@@ -34,10 +38,20 @@ export function AuthForm({
     setMessage("");
   }
 
-  async function sendEmailCode() {
-    if (sendingCode || cooldown > 0) return;
+  function enterStage(nextStage: Stage) {
     resetNotice();
-    setSendingCode(true);
+    setStage(nextStage);
+  }
+
+  function routeAfterLogin(data: { needsProfile?: boolean }) {
+    const ref = inviteCode.trim();
+    router.push(data.needsProfile ? `/profile-setup${ref ? `?ref=${encodeURIComponent(ref)}` : ""}` : "/");
+    router.refresh();
+  }
+
+  async function requestEmailCode() {
+    resetNotice();
+    setLoading(true);
 
     try {
       const res = await fetch("/api/auth/login/send-code", {
@@ -52,16 +66,45 @@ export function AuthForm({
         return;
       }
       setCooldown(60);
-      setMessage("验证码已发送，请查看邮箱");
+      setEmailCode("");
+      setMessage("验证码已发送，请查看邮箱。");
+      setStage("code");
     } catch {
       setError("网络错误，请稍后重试");
     } finally {
-      setSendingCode(false);
+      setLoading(false);
     }
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submitCode() {
+    resetNotice();
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, emailCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "验证码不正确");
+        return;
+      }
+      if (data.needsRegistration) {
+        setMessage("这是新邮箱，请补全账号信息。");
+        setStage("register");
+        return;
+      }
+      routeAfterLogin(data);
+    } catch {
+      setError("网络错误，请重试");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitRegistration() {
     resetNotice();
     setLoading(true);
 
@@ -72,18 +115,17 @@ export function AuthForm({
         body: JSON.stringify({
           email,
           emailCode,
+          name,
+          password,
           inviteCode: inviteCode.trim() || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "登录失败");
+        setError(data.error ?? "注册失败");
         return;
       }
-
-      const ref = inviteCode.trim();
-      router.push(data.needsProfile ? `/profile-setup${ref ? `?ref=${encodeURIComponent(ref)}` : ""}` : "/");
-      router.refresh();
+      routeAfterLogin(data);
     } catch {
       setError("网络错误，请重试");
     } finally {
@@ -91,8 +133,40 @@ export function AuthForm({
     }
   }
 
-  const sendCodeText = sendingCode ? "发送中" : cooldown > 0 ? `${cooldown}秒` : "发送验证码";
+  async function submitPasswordLogin() {
+    resetNotice();
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/password-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "登录失败");
+        return;
+      }
+      routeAfterLogin(data);
+    } catch {
+      setError("网络错误，请重试");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (stage === "email") void requestEmailCode();
+    if (stage === "code") void submitCode();
+    if (stage === "register") void submitRegistration();
+    if (stage === "password") void submitPasswordLogin();
+  }
+
   const isModal = variant === "modal";
+  const title =
+    stage === "password" ? "密码登录" : stage === "register" ? "完善账号" : stage === "code" ? "输入验证码" : "登录或注册";
 
   return (
     <div className={isModal ? "w-full" : "flex min-h-[calc(100vh-80px)] justify-center px-4 pb-12 pt-20 sm:pt-24"}>
@@ -107,14 +181,15 @@ export function AuthForm({
         </div>
 
         <div className="rounded-[22px] border border-slate-200 bg-white px-5 py-6 shadow-[0_18px_46px_rgba(15,23,42,0.06)]">
-          <h1 className="text-center text-2xl font-semibold tracking-tight text-slate-950">登录或注册</h1>
+          <h1 className="text-center text-2xl font-semibold tracking-tight text-slate-950">{title}</h1>
 
-          <form onSubmit={submit} className="mt-6 space-y-3">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-3">
             <input
               aria-label="电子邮箱"
-              className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+              className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 disabled:bg-slate-50 disabled:text-slate-500"
               type="email"
               required
+              disabled={stage === "code" || stage === "register"}
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -123,42 +198,123 @@ export function AuthForm({
               placeholder="电子邮箱"
             />
 
-            <div className="flex h-12 items-center rounded-xl border border-slate-200 bg-white transition focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-50">
+            {stage === "code" ? (
               <input
                 aria-label="验证码"
-                className="min-w-0 flex-1 border-0 bg-transparent px-4 text-[15px] font-medium text-slate-950 outline-none placeholder:text-slate-400"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
                 inputMode="numeric"
                 maxLength={6}
                 required
                 value={emailCode}
                 onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="验证码"
+                placeholder="6 位邮箱验证码"
               />
+            ) : null}
+
+            {stage === "register" ? (
+              <>
+                <input
+                  aria-label="用户名"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="用户名"
+                />
+                <input
+                  aria-label="设置密码"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                  type="password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="设置密码"
+                />
+                <input
+                  aria-label="邀请码"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value)}
+                  placeholder="邀请码（选填）"
+                />
+              </>
+            ) : null}
+
+            {stage === "password" ? (
+              <input
+                aria-label="密码"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="密码"
+              />
+            ) : null}
+
+            {error ? (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+                {error}
+              </div>
+            ) : null}
+            {message ? (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+                {message}
+              </div>
+            ) : null}
+
+            <button type="submit" disabled={loading} className="btn-primary h-12 w-full rounded-xl text-base">
+              {loading
+                ? "处理中..."
+                : stage === "email"
+                  ? "继续"
+                  : stage === "code"
+                    ? "验证并继续"
+                    : stage === "register"
+                      ? "完成注册"
+                      : "登录"}
+            </button>
+          </form>
+
+          {stage === "email" ? (
+            <button
+              type="button"
+              onClick={() => enterStage("password")}
+              className="mt-4 w-full text-center text-sm font-semibold text-slate-500 transition hover:text-indigo-600"
+            >
+              用密码登录
+            </button>
+          ) : null}
+
+          {stage === "code" ? (
+            <div className="mt-4 flex items-center justify-between text-sm font-semibold">
+              <button type="button" onClick={() => enterStage("email")} className="text-slate-500 transition hover:text-indigo-600">
+                换邮箱
+              </button>
               <button
                 type="button"
-                onClick={sendEmailCode}
-                disabled={sendingCode || cooldown > 0}
-                className="mr-1.5 h-9 shrink-0 rounded-lg border border-indigo-100 bg-indigo-50 px-3.5 text-sm font-semibold text-indigo-600 transition hover:border-indigo-200 hover:bg-indigo-100 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-45"
+                onClick={() => void requestEmailCode()}
+                disabled={loading || cooldown > 0}
+                className="text-indigo-600 transition hover:text-indigo-700 disabled:cursor-not-allowed disabled:text-slate-400"
               >
-                {sendCodeText}
+                {cooldown > 0 ? `${cooldown} 秒后重发` : "重新发送"}
               </button>
             </div>
-
-          {error ? (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
-              {error}
-            </div>
-          ) : null}
-          {message ? (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
-              {message}
-            </div>
           ) : null}
 
-          <button type="submit" disabled={loading} className="btn-primary h-12 w-full rounded-xl text-base">
-            {loading ? "处理中..." : "登录或注册"}
-          </button>
-        </form>
+          {stage === "password" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setPassword("");
+                enterStage("email");
+              }}
+              className="mt-4 w-full text-center text-sm font-semibold text-slate-500 transition hover:text-indigo-600"
+            >
+              用验证码登录
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
