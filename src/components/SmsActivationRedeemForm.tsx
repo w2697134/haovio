@@ -4,6 +4,17 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { emitClientEvent } from "@/lib/clientEvents";
 import { formatMoney } from "@/lib/money";
+import {
+  SMS_ACTIVATION_COUNTRIES,
+  SMS_ACTIVATION_OPERATORS,
+  SMS_ACTIVATION_SERVICES,
+  type SmsActivationCountryCode,
+  type SmsActivationOperatorCode,
+  type SmsActivationServiceCode,
+  getSmsActivationCountryLabel,
+  getSmsActivationOperatorLabel,
+  getSmsActivationServiceLabel,
+} from "@/lib/smsActivationOptions";
 
 type SmsActivationOrder = {
   id: string;
@@ -13,6 +24,9 @@ type SmsActivationOrder = {
   smsText: string | null;
   expiresAt: string | null;
   pointsCost: number;
+  serviceCode: string;
+  countryCode: string;
+  operatorCode: string;
 };
 
 type ResultState =
@@ -37,6 +51,9 @@ export function SmsActivationRedeemForm({
   const [order, setOrder] = useState<SmsActivationOrder | null>(null);
   const [result, setResult] = useState<ResultState | null>(null);
   const [copied, setCopied] = useState("");
+  const [serviceCode, setServiceCode] = useState<SmsActivationServiceCode>(SMS_ACTIVATION_SERVICES[0].code);
+  const [countryCode, setCountryCode] = useState<SmsActivationCountryCode>(SMS_ACTIVATION_COUNTRIES[0].code);
+  const [operatorCode, setOperatorCode] = useState<SmsActivationOperatorCode>(SMS_ACTIVATION_OPERATORS[0].code);
 
   const insufficient = balance < pointsCost;
   const shortfallCents = Math.max(pointsCost - balance, 0);
@@ -45,6 +62,10 @@ export function SmsActivationRedeemForm({
   const afterBalanceLabel = formatMoney(Math.max(balance - pointsCost, 0)).replace(/\.00$/, "");
   const shortfallLabel = formatMoney(shortfallCents).replace(/\.00$/, "");
   const activeOrder = order && ["ACTIVE", "RECEIVED"].includes(order.status);
+  const locked = Boolean(order);
+  const visibleServiceCode = order?.serviceCode ?? serviceCode;
+  const visibleCountryCode = order?.countryCode ?? countryCode;
+  const visibleOperatorCode = order?.operatorCode ?? operatorCode;
 
   useEffect(() => {
     if (!order || order.status !== "ACTIVE") return;
@@ -71,7 +92,7 @@ export function SmsActivationRedeemForm({
       const res = await fetch("/api/sms-activations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ variantId }),
+        body: JSON.stringify({ variantId, serviceCode, countryCode, operatorCode }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -140,15 +161,57 @@ export function SmsActivationRedeemForm({
         <div className="mt-2 grid gap-2 text-[var(--foreground)] sm:grid-cols-3">
           <div className="rounded-lg bg-white/70 px-3 py-2">
             <div className="text-xs text-[var(--muted)]">服务</div>
-            <div className="font-bold">OpenAI</div>
+            {locked ? (
+              <div className="font-bold">{getSmsActivationServiceLabel(visibleServiceCode)}</div>
+            ) : (
+              <select
+                value={serviceCode}
+                onChange={(event) => setServiceCode(event.target.value as SmsActivationServiceCode)}
+                className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
+              >
+                {SMS_ACTIVATION_SERVICES.map((service) => (
+                  <option key={service.code} value={service.code}>
+                    {service.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="rounded-lg bg-white/70 px-3 py-2">
             <div className="text-xs text-[var(--muted)]">国家</div>
-            <div className="font-bold">美国</div>
+            {locked ? (
+              <div className="font-bold">{getSmsActivationCountryLabel(visibleCountryCode)}</div>
+            ) : (
+              <select
+                value={countryCode}
+                onChange={(event) => setCountryCode(event.target.value as SmsActivationCountryCode)}
+                className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
+              >
+                {SMS_ACTIVATION_COUNTRIES.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="rounded-lg bg-white/70 px-3 py-2">
             <div className="text-xs text-[var(--muted)]">运营商</div>
-            <div className="font-bold">自动匹配</div>
+            {locked ? (
+              <div className="font-bold">{getSmsActivationOperatorLabel(visibleOperatorCode)}</div>
+            ) : (
+              <select
+                value={operatorCode}
+                onChange={(event) => setOperatorCode(event.target.value as SmsActivationOperatorCode)}
+                className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
+              >
+                {SMS_ACTIVATION_OPERATORS.map((operator) => (
+                  <option key={operator.code} value={operator.code}>
+                    {operator.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
       </div>

@@ -4,9 +4,17 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { buyFiveSimActivation, extractSmsCode } from "@/lib/fiveSim";
 import { pointsForPrice } from "@/lib/points";
+import {
+  isSmsActivationCountry,
+  isSmsActivationOperator,
+  isSmsActivationService,
+} from "@/lib/smsActivationOptions";
 
 const schema = z.object({
   variantId: z.string().min(1, "请选择商品"),
+  serviceCode: z.string().default("openai"),
+  countryCode: z.string().default("usa"),
+  operatorCode: z.string().default("any"),
 });
 
 function publicOrder(order: {
@@ -17,6 +25,9 @@ function publicOrder(order: {
   smsText: string | null;
   expiresAt: Date | null;
   pointsCost: number;
+  serviceCode: string;
+  countryCode: string;
+  operatorCode: string;
 }) {
   return {
     id: order.id,
@@ -26,6 +37,9 @@ function publicOrder(order: {
     smsText: order.smsText,
     expiresAt: order.expiresAt?.toISOString() ?? null,
     pointsCost: order.pointsCost,
+    serviceCode: order.serviceCode,
+    countryCode: order.countryCode,
+    operatorCode: order.operatorCode,
   };
 }
 
@@ -78,6 +92,13 @@ export async function POST(req: Request) {
   if (!variant || variant.product.status !== "ACTIVE" || variant.product.slug !== "sms-activation") {
     return NextResponse.json({ error: "接码商品不存在或已下架" }, { status: 404 });
   }
+  if (
+    !isSmsActivationService(parsed.data.serviceCode) ||
+    !isSmsActivationCountry(parsed.data.countryCode) ||
+    !isSmsActivationOperator(parsed.data.operatorCode)
+  ) {
+    return NextResponse.json({ error: "接码国家或服务暂不支持" }, { status: 400 });
+  }
 
   const pointsCost = pointsForPrice(variant.price);
   const created = await prisma.$transaction(async (tx) => {
@@ -100,9 +121,9 @@ export async function POST(req: Request) {
         productName: variant.product.name,
         variantName: variant.name,
         pointsCost,
-        serviceCode: "openai",
-        countryCode: "usa",
-        operatorCode: "any",
+        serviceCode: parsed.data.serviceCode,
+        countryCode: parsed.data.countryCode,
+        operatorCode: parsed.data.operatorCode,
       },
     });
 

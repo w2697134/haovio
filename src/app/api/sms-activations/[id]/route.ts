@@ -20,6 +20,9 @@ function publicOrder(order: {
   smsText: string | null;
   expiresAt: Date | null;
   pointsCost: number;
+  serviceCode: string;
+  countryCode: string;
+  operatorCode: string;
 }) {
   return {
     id: order.id,
@@ -29,6 +32,9 @@ function publicOrder(order: {
     smsText: order.smsText,
     expiresAt: order.expiresAt?.toISOString() ?? null,
     pointsCost: order.pointsCost,
+    serviceCode: order.serviceCode,
+    countryCode: order.countryCode,
+    operatorCode: order.operatorCode,
   };
 }
 
