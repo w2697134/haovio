@@ -42,15 +42,6 @@ export function AuthForm({
     setMessage("");
   }
 
-  function resetToEmail() {
-    resetNotice();
-    setStage("email");
-    setAccountMode(null);
-    setCodeSent(false);
-    setEmailCode("");
-    setPassword("");
-  }
-
   function routeAfterLogin(data: { needsProfile?: boolean }) {
     const ref = inviteCode.trim();
     router.push(data.needsProfile ? `/profile-setup${ref ? `?ref=${encodeURIComponent(ref)}` : ""}` : "/");
@@ -76,7 +67,6 @@ export function AuthForm({
       setCooldown(60);
       setCodeSent(true);
       setEmailCode("");
-      setMessage("验证码已发送，请查看邮箱。");
       setStage(nextStage);
       return true;
     } catch {
@@ -108,7 +98,6 @@ export function AuthForm({
         setCodeSent(false);
         setEmailCode("");
         setPassword("");
-        setMessage("可使用验证码登录，也可以切换为密码登录。");
         setStage("code");
         return;
       }
@@ -356,16 +345,6 @@ export function AuthForm({
               className="mt-4 w-full text-center text-sm font-semibold text-slate-500 transition hover:text-indigo-600"
             >
               用密码登录
-            </button>
-          ) : null}
-
-          {stage === "code" ? (
-            <button
-              type="button"
-              onClick={resetToEmail}
-              className="mt-3 w-full text-center text-sm font-semibold text-slate-400 transition hover:text-indigo-600"
-            >
-              换邮箱
             </button>
           ) : null}
 
