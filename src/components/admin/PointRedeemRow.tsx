@@ -15,6 +15,7 @@ export type AdminPointRedeem = {
   contactQq: string | null;
   contactWechat: string | null;
   deliveryMode: string;
+  invoiceRequested: boolean;
   createdAt: string;
   user: { email: string; name: string | null };
 };
@@ -149,6 +150,9 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
             <StatusPill className={STATUS_CLASS[redeem.status]}>{statusText}</StatusPill>
             <span className="truncate text-base font-semibold text-slate-950">{redeem.productName} / {redeem.variantName}</span>
             <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">{deliveryText}</span>
+            {redeem.invoiceRequested ? (
+              <span className="rounded-md bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-700">需发票</span>
+            ) : null}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
             <span className="font-mono">{shortId}</span>
@@ -252,6 +256,7 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
               <InfoBlock label="用户邮箱" value={redeem.user.email} copyKey="email" copied={copied} onCopy={copy} />
               <InfoBlock label="联系方式" value={contact || "未留联系方式"} copyKey="contact" copied={copied} onCopy={contact ? copy : undefined} />
               <InfoBlock label="交付方式" value={deliveryText} />
+              <InfoBlock label="发票" value={redeem.invoiceRequested ? "需要" : "不需要"} />
             </div>
 
             {isSessionDelivery ? (

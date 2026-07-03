@@ -15,6 +15,7 @@ const schema = z
     contactQq: z.string().trim().max(40, "QQ 过长").optional(),
     contactWechat: z.string().trim().max(80, "微信过长").optional(),
     deliveryMode: z.enum(["COOKIE", "MANUAL"]).default("MANUAL"),
+    invoiceRequested: z.boolean().optional(),
     cookieJson: z.string().optional(),
     cookieAccount: z
       .object({
@@ -54,6 +55,7 @@ export async function POST(req: Request) {
 
   const pointsCost = pointsForPrice(variant.price);
   const isSharedProduct = variant.product.slug.includes("shared");
+  const invoiceRequested = Boolean(data.invoiceRequested) && !isSharedProduct;
   if (isSharedProduct && data.deliveryMode !== "MANUAL") {
     return NextResponse.json({ error: "合租号无需 Session，请走人工交付" }, { status: 400 });
   }
@@ -101,9 +103,11 @@ export async function POST(req: Request) {
           contactQq: data.contactQq || null,
           contactWechat: data.contactWechat || null,
           deliveryMode: data.deliveryMode,
+          invoiceRequested,
           accountInfo: JSON.stringify({
             deliveryMode: data.deliveryMode,
             cookieAccount: isManualDelivery ? null : data.cookieAccount ?? null,
+            invoiceRequested,
           }),
           cookieJsonCipher: encryptSensitiveText(isManualDelivery ? "人工交付" : data.cookieJson ?? ""),
           cookieHeaderCipher: encryptSensitiveText(cookieHeader),

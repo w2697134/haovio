@@ -4,6 +4,7 @@ import { BackButton } from "@/components/BackButton";
 import { LogoutButton } from "@/components/LogoutButton";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { REFERRAL_LEDGER_TYPE } from "@/lib/invite";
 import { formatCnyBalance } from "@/lib/money";
 import { centsToYuan } from "@/lib/pointPurchase";
 import { POINT_REDEEM_STATUS_LABEL } from "@/lib/points";
@@ -72,7 +73,7 @@ export default async function AccountPage() {
   const sessionUser = await getCurrentUser();
   if (!sessionUser) redirect("/login");
 
-  const [user, purchases, redeems, ledgers] = await Promise.all([
+  const [user, purchases, redeems, ledgers, inviteeCount, referralStats] = await Promise.all([
     prisma.user.findUnique({
       where: { id: sessionUser.id },
       select: {
@@ -96,12 +97,19 @@ export default async function AccountPage() {
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
+    prisma.user.count({ where: { invitedById: sessionUser.id } }),
+    prisma.pointLedger.aggregate({
+      where: { userId: sessionUser.id, type: REFERRAL_LEDGER_TYPE },
+      _sum: { amount: true },
+      _count: { _all: true },
+    }),
   ]);
 
   if (!user) redirect("/login");
 
   const displayName = user.name || user.email;
   const avatarText = displayName.slice(0, 1).toUpperCase();
+  const totalReferralReward = referralStats._sum.amount ?? 0;
 
   const activities: Activity[] = [
     ...purchases.map((order) => ({
@@ -168,6 +176,12 @@ export default async function AccountPage() {
           </div>
           <div className="flex gap-2.5">
             <Link
+              href="/invite"
+              className="inline-flex items-center rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]"
+            >
+              邀请返利
+            </Link>
+            <Link
               href="/buy-points"
               className="inline-flex items-center rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]"
             >
@@ -181,6 +195,23 @@ export default async function AccountPage() {
             </Link>
           </div>
         </div>
+        <Link
+          href="/invite"
+          className="mt-6 grid gap-3 rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 transition hover:border-indigo-200 hover:bg-indigo-50 sm:grid-cols-3"
+        >
+          <div>
+            <div className="text-xs font-semibold text-indigo-500">累计返利</div>
+            <div className="mt-1 text-lg font-black tabular-nums text-slate-950">{formatBalance(totalReferralReward)}</div>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-indigo-500">已邀请</div>
+            <div className="mt-1 text-lg font-black tabular-nums text-slate-950">{inviteeCount}</div>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-indigo-500">返利记录</div>
+            <div className="mt-1 text-lg font-black tabular-nums text-slate-950">{referralStats._count._all}</div>
+          </div>
+        </Link>
       </section>
 
       <section className="mt-10">

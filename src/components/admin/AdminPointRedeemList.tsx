@@ -46,6 +46,7 @@ export async function AdminPointRedeemList({
     contactQq: redeem.contactQq,
     contactWechat: redeem.contactWechat,
     deliveryMode: redeem.deliveryMode,
+    invoiceRequested: redeem.invoiceRequested,
     createdAt: redeem.createdAt.toISOString(),
     user: redeem.user,
   }));

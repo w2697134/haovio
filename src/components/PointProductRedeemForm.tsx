@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
+import { CheckIcon, CloseIcon } from "@/components/icons";
 import { emitClientEvent } from "@/lib/clientEvents";
 import { formatMoney } from "@/lib/money";
 
@@ -100,6 +101,8 @@ export function PointProductRedeemForm({
   const [rechargeLoading, setRechargeLoading] = useState(false);
   const [rechargeError, setRechargeError] = useState("");
   const [rechargeOrder, setRechargeOrder] = useState<RechargeOrder | null>(null);
+  const [invoiceRequested, setInvoiceRequested] = useState(false);
+  const [invoiceSampleOpen, setInvoiceSampleOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [result, setResult] = useState<ResultState | null>(null);
@@ -113,6 +116,7 @@ export function PointProductRedeemForm({
   const buttonBusy = loading || redirecting;
   const activeDeliveryMode = allowsSessionDelivery ? deliveryMode : "MANUAL";
   const isSessionDelivery = activeDeliveryMode === "COOKIE";
+  const showInvoiceOption = allowsSessionDelivery;
   const isQqGroup = supportContact?.platform === "QQ群";
   const handlerName = isQqGroup ? "群主" : "客服";
   const supportTitle = `提交后会立刻生成订单号，请复制给${handlerName}处理`;
@@ -147,6 +151,7 @@ export function PointProductRedeemForm({
           deliveryMode: activeDeliveryMode,
           cookieJson: isSessionDelivery ? sessionJson : undefined,
           cookieAccount: isSessionDelivery && sessionCheck?.ok ? sessionCheck.account : undefined,
+          invoiceRequested: showInvoiceOption ? invoiceRequested : false,
         }),
       });
       const data = await res.json();
@@ -315,6 +320,32 @@ export function PointProductRedeemForm({
         </div>
       ) : null}
 
+      {invoiceSampleOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6">
+          <div className="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+              <div className="text-sm font-bold text-[var(--foreground)]">发票样例</div>
+              <button
+                type="button"
+                onClick={() => setInvoiceSampleOpen(false)}
+                className="grid h-9 w-9 place-items-center rounded-full text-[var(--muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+                aria-label="关闭"
+              >
+                <CloseIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="max-h-[calc(90vh-58px)] overflow-auto bg-slate-100 p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/support/openai-invoice-sample.png"
+                alt="发票样例"
+                className="mx-auto h-auto max-w-full rounded-lg bg-white shadow-sm"
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {redirecting ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[calc(var(--radius-xl)+4px)] bg-white/72">
           <div className="rounded-2xl border border-[var(--border)] bg-white px-5 py-4 text-center shadow-sm">
@@ -369,7 +400,42 @@ export function PointProductRedeemForm({
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-semibold">处理方式</label>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <label className="block text-sm font-semibold">处理方式</label>
+            {showInvoiceOption ? (
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={buttonBusy}
+                  onClick={() => setInvoiceRequested((value) => !value)}
+                  aria-pressed={invoiceRequested}
+                  className={
+                    "inline-flex h-9 items-center gap-2 rounded-lg border bg-white px-3 text-sm font-semibold transition disabled:opacity-60 " +
+                    (invoiceRequested
+                      ? "border-[var(--primary)] text-[var(--primary)]"
+                      : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--primary)]/60 hover:text-[var(--foreground)]")
+                  }
+                >
+                  <span
+                    className={
+                      "grid h-4 w-4 place-items-center rounded border " +
+                      (invoiceRequested ? "border-[var(--primary)] bg-[var(--primary)] text-white" : "border-slate-300")
+                    }
+                  >
+                    {invoiceRequested ? <CheckIcon className="h-3 w-3" /> : null}
+                  </span>
+                  需要发票
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInvoiceSampleOpen(true)}
+                  className="inline-flex h-9 items-center rounded-lg border border-[var(--border)] bg-white px-3 text-sm font-semibold text-[var(--muted)] transition hover:border-[var(--primary)]/60 hover:text-[var(--foreground)]"
+                >
+                  发票样例
+                </button>
+              </div>
+            ) : null}
+          </div>
           {allowsSessionDelivery ? (
             <div className="rounded-xl border border-[var(--primary)] bg-indigo-50 p-4 text-sm">
               <div className="grid gap-2 sm:grid-cols-2">

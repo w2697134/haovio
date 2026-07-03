@@ -253,6 +253,10 @@ function AccountMenu({ user, active = false }: { user: SessionUser; active?: boo
               <NavIcon name="settings" />
               设置
             </Link>
+            <Link href="/invite" className={itemClass}>
+              <NavIcon name="gift" />
+              邀请有礼
+            </Link>
             <button type="button" onClick={logout} disabled={loggingOut} className={itemClass}>
               <NavIcon name="logout" />
               {loggingOut ? "退出中" : "退出"}
@@ -359,6 +363,14 @@ export function Header({ user, balance = 0 }: { user: SessionUser | null; balanc
 
         <div className="ml-auto flex gap-2 lg:hidden">
           {user ? <WalletBalanceLink balance={balance} /> : null}
+          {user ? (
+            <Link
+              href="/account"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+            >
+              账户
+            </Link>
+          ) : null}
           {!user ? (
             <button
               type="button"
