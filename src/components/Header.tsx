@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { SessionUser } from "@/lib/auth";
 import { formatCnyBalance } from "@/lib/money";
@@ -264,145 +264,10 @@ function AccountMenu({ user, active = false }: { user: SessionUser; active?: boo
   );
 }
 
-const adminLinks = [
-  { href: "/admin", label: "后台", icon: "admin" as const },
-  { href: "/admin/pending", label: "待处理", icon: "orders" as const },
-  { href: "/admin/products", label: "商品", icon: "products" as const },
-  { href: "/admin/questions", label: "问题", icon: "questions" as const },
-  { href: "/admin/settings", label: "设置", icon: "settings" as const },
-];
-
-function AdminQuickBar({ onAdjust }: { onAdjust: () => void }) {
-  const pathname = usePathname();
-
-  return (
-    <div className="border-t border-slate-200/70 bg-white/70 px-3 py-2 backdrop-blur sm:px-5">
-      <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto">
-        {adminLinks.map((item) => {
-          const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition ${
-                active
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950"
-              }`}
-            >
-              <NavIcon name={item.icon} />
-              {item.label}
-            </Link>
-          );
-        })}
-        <button
-          type="button"
-          onClick={onAdjust}
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 px-3 text-sm font-semibold text-indigo-700 transition hover:border-indigo-200 hover:bg-indigo-100"
-        >
-          <NavIcon name="plusCircle" />
-          发余额
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function AdminBalanceModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const router = useRouter();
-  const [target, setTarget] = useState("");
-  const [amount, setAmount] = useState("");
-  const [note, setNote] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-
-  if (!open) return null;
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (loading) return;
-    setLoading(true);
-    setMessage("");
-    setError("");
-    try {
-      const res = await fetch("/api/admin/users/balance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target, amount, note }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "操作失败");
-        return;
-      }
-      setMessage(`已更新 ${data.user.email} · ${formatCnyBalance(data.user.pointsBalance)}`);
-      setTarget("");
-      setAmount("");
-      setNote("");
-      emitClientEvent("balanceChanged");
-      router.refresh();
-    } catch {
-      setError("网络错误");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/35 px-4 py-6">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-black text-slate-950">发余额</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-950"
-            aria-label="关闭"
-          >
-            ×
-          </button>
-        </div>
-        <div className="space-y-3">
-          <input
-            value={target}
-            onChange={(event) => setTarget(event.target.value)}
-            className="input h-11"
-            placeholder="用户ID / 邮箱"
-          />
-          <input
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            className="input h-11"
-            placeholder="金额"
-            inputMode="decimal"
-          />
-          <input
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            className="input h-11"
-            placeholder="备注"
-          />
-        </div>
-        {error ? <p className="mt-3 text-sm font-semibold text-rose-600">{error}</p> : null}
-        {message ? <p className="mt-3 text-sm font-semibold text-emerald-600">{message}</p> : null}
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-4 h-11 w-full rounded-xl bg-slate-950 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
-        >
-          {loading ? "处理中" : "确认"}
-        </button>
-      </form>
-    </div>
-  );
-}
-
 export function Header({ user, balance = 0 }: { user: SessionUser | null; balance?: number }) {
   const pathname = usePathname();
   const router = useRouter();
   const [loginOpen, setLoginOpen] = useState(false);
-  const [adminBalanceOpen, setAdminBalanceOpen] = useState(false);
 
   useEffect(() => {
     function openLoginModal() {
@@ -466,6 +331,12 @@ export function Header({ user, balance = 0 }: { user: SessionUser | null; balanc
               邀请有礼
             </Link>
           ) : null}
+          {user?.role === "ADMIN" ? (
+            <Link href="/admin/manage" className={pill(pathname.startsWith("/admin"))}>
+              <NavIcon name="admin" />
+              管理
+            </Link>
+          ) : null}
         </nav>
 
         <div className="ml-auto hidden items-center gap-2.5 lg:flex">
@@ -504,13 +375,17 @@ export function Header({ user, balance = 0 }: { user: SessionUser | null; balanc
           >
             客服
           </button>
+          {user?.role === "ADMIN" ? (
+            <Link
+              href="/admin/manage"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+            >
+              管理
+            </Link>
+          ) : null}
         </div>
       </div>
-      {user?.role === "ADMIN" ? <AdminQuickBar onAdjust={() => setAdminBalanceOpen(true)} /> : null}
       {!user ? <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} /> : null}
-      {user?.role === "ADMIN" ? (
-        <AdminBalanceModal open={adminBalanceOpen} onClose={() => setAdminBalanceOpen(false)} />
-      ) : null}
     </header>
   );
 }
