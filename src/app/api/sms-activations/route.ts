@@ -13,7 +13,7 @@ import {
 const schema = z.object({
   variantId: z.string().min(1, "请选择商品"),
   serviceCode: z.string().default("openai"),
-  countryCode: z.string().default("usa"),
+  countryCode: z.string().default("vietnam"),
   operatorCode: z.string().default("any"),
 });
 

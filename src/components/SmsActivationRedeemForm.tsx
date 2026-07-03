@@ -8,12 +8,6 @@ import {
   SMS_ACTIVATION_COUNTRIES,
   SMS_ACTIVATION_OPERATORS,
   SMS_ACTIVATION_SERVICES,
-  type SmsActivationCountryCode,
-  type SmsActivationOperatorCode,
-  type SmsActivationServiceCode,
-  getSmsActivationCountryLabel,
-  getSmsActivationOperatorLabel,
-  getSmsActivationServiceLabel,
 } from "@/lib/smsActivationOptions";
 
 type SmsActivationOrder = {
@@ -51,9 +45,6 @@ export function SmsActivationRedeemForm({
   const [order, setOrder] = useState<SmsActivationOrder | null>(null);
   const [result, setResult] = useState<ResultState | null>(null);
   const [copied, setCopied] = useState("");
-  const [serviceCode, setServiceCode] = useState<SmsActivationServiceCode>(SMS_ACTIVATION_SERVICES[0].code);
-  const [countryCode, setCountryCode] = useState<SmsActivationCountryCode>(SMS_ACTIVATION_COUNTRIES[0].code);
-  const [operatorCode, setOperatorCode] = useState<SmsActivationOperatorCode>(SMS_ACTIVATION_OPERATORS[0].code);
 
   const insufficient = balance < pointsCost;
   const shortfallCents = Math.max(pointsCost - balance, 0);
@@ -62,10 +53,9 @@ export function SmsActivationRedeemForm({
   const afterBalanceLabel = formatMoney(Math.max(balance - pointsCost, 0)).replace(/\.00$/, "");
   const shortfallLabel = formatMoney(shortfallCents).replace(/\.00$/, "");
   const activeOrder = order && ["ACTIVE", "RECEIVED"].includes(order.status);
-  const locked = Boolean(order);
-  const visibleServiceCode = order?.serviceCode ?? serviceCode;
-  const visibleCountryCode = order?.countryCode ?? countryCode;
-  const visibleOperatorCode = order?.operatorCode ?? operatorCode;
+  const serviceCode = SMS_ACTIVATION_SERVICES[0].code;
+  const countryCode = SMS_ACTIVATION_COUNTRIES[0].code;
+  const operatorCode = SMS_ACTIVATION_OPERATORS[0].code;
 
   useEffect(() => {
     if (!order || order.status !== "ACTIVE") return;
@@ -157,62 +147,15 @@ export function SmsActivationRedeemForm({
       </div>
 
       <div className="rounded-xl border border-[var(--primary)] bg-indigo-50 p-4 text-sm">
-        <div className="font-semibold text-[var(--primary)]">全自动接码</div>
-        <div className="mt-2 grid gap-2 text-[var(--foreground)] sm:grid-cols-3">
-          <div className="rounded-lg bg-white/70 px-3 py-2">
-            <div className="text-xs text-[var(--muted)]">服务</div>
-            {locked ? (
-              <div className="font-bold">{getSmsActivationServiceLabel(visibleServiceCode)}</div>
-            ) : (
-              <select
-                value={serviceCode}
-                onChange={(event) => setServiceCode(event.target.value as SmsActivationServiceCode)}
-                className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
-              >
-                {SMS_ACTIVATION_SERVICES.map((service) => (
-                  <option key={service.code} value={service.code}>
-                    {service.label}
-                  </option>
-                ))}
-              </select>
-            )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="font-bold text-[var(--foreground)]">越南 OpenAI 接码</div>
+            <div className="mt-1 text-[var(--muted)]">系统自动买号，收到短信后自动显示验证码。</div>
           </div>
-          <div className="rounded-lg bg-white/70 px-3 py-2">
-            <div className="text-xs text-[var(--muted)]">国家</div>
-            {locked ? (
-              <div className="font-bold">{getSmsActivationCountryLabel(visibleCountryCode)}</div>
-            ) : (
-              <select
-                value={countryCode}
-                onChange={(event) => setCountryCode(event.target.value as SmsActivationCountryCode)}
-                className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
-              >
-                {SMS_ACTIVATION_COUNTRIES.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.label}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <div className="rounded-lg bg-white/70 px-3 py-2">
-            <div className="text-xs text-[var(--muted)]">运营商</div>
-            {locked ? (
-              <div className="font-bold">{getSmsActivationOperatorLabel(visibleOperatorCode)}</div>
-            ) : (
-              <select
-                value={operatorCode}
-                onChange={(event) => setOperatorCode(event.target.value as SmsActivationOperatorCode)}
-                className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
-              >
-                {SMS_ACTIVATION_OPERATORS.map((operator) => (
-                  <option key={operator.code} value={operator.code}>
-                    {operator.label}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[var(--primary)]">全自动</span>
+        </div>
+        <div className="mt-3 border-t border-indigo-100 pt-3 text-xs leading-5 text-[var(--muted)]">
+          适合 OpenAI / ChatGPT 验证。提交后请在有效期内使用号码，验证码会在本页自动刷新。
         </div>
       </div>
 
@@ -317,7 +260,7 @@ export function SmsActivationRedeemForm({
             onClick={createOrder}
             className="btn-primary w-full py-3 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "自动买号中..." : `自动买号，消耗 ${costLabel}`}
+            {loading ? "自动获取中..." : `获取越南号码，消耗 ${costLabel}`}
           </button>
         )
       ) : null}

@@ -3,7 +3,6 @@ export const SMS_ACTIVATION_SERVICES = [
 ] as const;
 
 export const SMS_ACTIVATION_COUNTRIES = [
-  { code: "usa", label: "美国" },
   { code: "vietnam", label: "越南" },
 ] as const;
 
