@@ -401,7 +401,7 @@ export function PointProductRedeemForm({
                 <>
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm font-semibold text-[var(--foreground)]">
-                      粘贴完整 ChatGPT Session JSON
+                      粘贴完整 ChatGPT Session
                     </p>
                     <Link
                       href="/session-guide"
@@ -413,7 +413,6 @@ export function PointProductRedeemForm({
                   </div>
                   <textarea
                     className="input mt-3 min-h-40 bg-white font-mono text-xs"
-                    placeholder="ChatGPT Session JSON"
                     value={sessionJson}
                     onChange={(event) => {
                       setSessionJson(event.target.value);
