@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckIcon, CloseIcon, CopyIcon } from "@/components/icons";
+import { CheckIcon, CloseIcon, CopyIcon, TrashIcon } from "@/components/icons";
 import { formatCnyBalance } from "@/lib/money";
 import { POINT_REDEEM_STATUS_LABEL } from "@/lib/points";
 
@@ -74,6 +74,27 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
       setError("读取 Session 失败");
     } finally {
       setSessionLoading(false);
+    }
+  }
+
+  async function deleteRedeem() {
+    const ok = window.confirm(`确认删除兑换订单 ${redeem.id}？删除后无法恢复。`);
+    if (!ok) return;
+
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/point-redeems/" + redeem.id, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "删除失败");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("删除失败");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -153,6 +174,16 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
               className="rounded-lg border border-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50"
             >
               完成
+            </button>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={deleteRedeem}
+              className="grid h-10 w-10 place-items-center rounded-lg border border-rose-100 text-rose-500 transition hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
+              aria-label="删除兑换订单"
+              title="删除"
+            >
+              <TrashIcon className="h-5 w-5" />
             </button>
           </div>
         </div>

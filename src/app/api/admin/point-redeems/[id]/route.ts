@@ -94,3 +94,22 @@ export async function GET(
     return NextResponse.json({ error: "Session 解密失败" }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "无权限" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const redeem = await prisma.pointRedeem.findUnique({ where: { id }, select: { id: true } });
+  if (!redeem) return NextResponse.json({ error: "订单不存在" }, { status: 404 });
+
+  await prisma.pointRedeem.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}

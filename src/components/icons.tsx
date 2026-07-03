@@ -65,6 +65,18 @@ export function CloseIcon(props: IconProps) {
   );
 }
 
+export function TrashIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6 18.2 20.2A2 2 0 0 1 16.2 22H7.8a2 2 0 0 1-2-1.8L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </Base>
+  );
+}
+
 export function GiftIcon(props: IconProps) {
   return (
     <Base {...props}>
