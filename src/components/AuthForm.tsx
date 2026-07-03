@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type Stage = "email" | "code" | "register" | "password";
+type AccountMode = "existing" | "new" | null;
 
 export function AuthForm({
   defaultInviteCode = "",
@@ -15,6 +16,8 @@ export function AuthForm({
 }) {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("email");
+  const [accountMode, setAccountMode] = useState<AccountMode>(null);
+  const [codeSent, setCodeSent] = useState(false);
   const [email, setEmail] = useState("");
   const [emailCode, setEmailCode] = useState("");
   const [password, setPassword] = useState("");
@@ -23,6 +26,7 @@ export function AuthForm({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
@@ -38,9 +42,13 @@ export function AuthForm({
     setMessage("");
   }
 
-  function enterStage(nextStage: Stage) {
+  function resetToEmail() {
     resetNotice();
-    setStage(nextStage);
+    setStage("email");
+    setAccountMode(null);
+    setCodeSent(false);
+    setEmailCode("");
+    setPassword("");
   }
 
   function routeAfterLogin(data: { needsProfile?: boolean }) {
@@ -49,9 +57,9 @@ export function AuthForm({
     router.refresh();
   }
 
-  async function requestEmailCode() {
+  async function requestEmailCode({ nextStage = "code" }: { nextStage?: Stage } = {}) {
     resetNotice();
-    setLoading(true);
+    setSendingCode(true);
 
     try {
       const res = await fetch("/api/auth/login/send-code", {
@@ -63,12 +71,51 @@ export function AuthForm({
       if (!res.ok) {
         if (typeof data.retryAfter === "number") setCooldown(data.retryAfter);
         setError(data.error ?? "验证码发送失败");
-        return;
+        return false;
       }
       setCooldown(60);
+      setCodeSent(true);
       setEmailCode("");
       setMessage("验证码已发送，请查看邮箱。");
-      setStage("code");
+      setStage(nextStage);
+      return true;
+    } catch {
+      setError("网络错误，请稍后重试");
+      return false;
+    } finally {
+      setSendingCode(false);
+    }
+  }
+
+  async function continueWithEmail() {
+    resetNotice();
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "邮箱检查失败");
+        return;
+      }
+
+      if (data.exists) {
+        setAccountMode("existing");
+        setCodeSent(false);
+        setEmailCode("");
+        setPassword("");
+        setMessage("可使用验证码登录，也可以切换为密码登录。");
+        setStage("code");
+        return;
+      }
+
+      setAccountMode("new");
+      setCodeSent(false);
+      await requestEmailCode({ nextStage: "code" });
     } catch {
       setError("网络错误，请稍后重试");
     } finally {
@@ -77,6 +124,11 @@ export function AuthForm({
   }
 
   async function submitCode() {
+    if (!codeSent) {
+      setError("请先发送验证码");
+      return;
+    }
+
     resetNotice();
     setLoading(true);
 
@@ -92,7 +144,7 @@ export function AuthForm({
         return;
       }
       if (data.needsRegistration) {
-        setMessage("这是新邮箱，请补全账号信息。");
+        setMessage("请补全账号信息。");
         setStage("register");
         return;
       }
@@ -158,15 +210,23 @@ export function AuthForm({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (stage === "email") void requestEmailCode();
+    if (stage === "email") void continueWithEmail();
     if (stage === "code") void submitCode();
     if (stage === "register") void submitRegistration();
     if (stage === "password") void submitPasswordLogin();
   }
 
+  function showPasswordLogin() {
+    resetNotice();
+    setPassword("");
+    setStage("password");
+  }
+
   const isModal = variant === "modal";
   const title =
     stage === "password" ? "密码登录" : stage === "register" ? "完善账号" : stage === "code" ? "输入验证码" : "登录或注册";
+  const busy = loading || sendingCode;
+  const canResend = !busy && cooldown <= 0;
 
   return (
     <div className={isModal ? "w-full" : "flex min-h-[calc(100vh-80px)] justify-center px-4 pb-12 pt-20 sm:pt-24"}>
@@ -189,7 +249,7 @@ export function AuthForm({
               className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 disabled:bg-slate-50 disabled:text-slate-500"
               type="email"
               required
-              disabled={stage === "code" || stage === "register"}
+              disabled={stage !== "email"}
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -199,16 +259,28 @@ export function AuthForm({
             />
 
             {stage === "code" ? (
-              <input
-                aria-label="验证码"
-                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
-                inputMode="numeric"
-                maxLength={6}
-                required
-                value={emailCode}
-                onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="6 位邮箱验证码"
-              />
+              <>
+                {accountMode === "existing" ? (
+                  <button
+                    type="button"
+                    onClick={() => void requestEmailCode({ nextStage: "code" })}
+                    disabled={!canResend}
+                    className="h-11 w-full rounded-xl border border-indigo-100 bg-indigo-50 px-4 text-sm font-semibold text-indigo-600 transition hover:border-indigo-200 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {sendingCode ? "发送中..." : cooldown > 0 ? `${cooldown} 秒后可重发` : codeSent ? "重新发送验证码" : "发送验证码"}
+                  </button>
+                ) : null}
+                <input
+                  aria-label="验证码"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                  inputMode="numeric"
+                  maxLength={6}
+                  required
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="6 位邮箱验证码"
+                />
+              </>
             ) : null}
 
             {stage === "register" ? (
@@ -264,8 +336,8 @@ export function AuthForm({
               </div>
             ) : null}
 
-            <button type="submit" disabled={loading} className="btn-primary h-12 w-full rounded-xl text-base">
-              {loading
+            <button type="submit" disabled={busy} className="btn-primary h-12 w-full rounded-xl text-base">
+              {busy
                 ? "处理中..."
                 : stage === "email"
                   ? "继续"
@@ -277,10 +349,10 @@ export function AuthForm({
             </button>
           </form>
 
-          {stage === "email" ? (
+          {stage === "code" && accountMode === "existing" ? (
             <button
               type="button"
-              onClick={() => enterStage("password")}
+              onClick={showPasswordLogin}
               className="mt-4 w-full text-center text-sm font-semibold text-slate-500 transition hover:text-indigo-600"
             >
               用密码登录
@@ -288,19 +360,13 @@ export function AuthForm({
           ) : null}
 
           {stage === "code" ? (
-            <div className="mt-4 flex items-center justify-between text-sm font-semibold">
-              <button type="button" onClick={() => enterStage("email")} className="text-slate-500 transition hover:text-indigo-600">
-                换邮箱
-              </button>
-              <button
-                type="button"
-                onClick={() => void requestEmailCode()}
-                disabled={loading || cooldown > 0}
-                className="text-indigo-600 transition hover:text-indigo-700 disabled:cursor-not-allowed disabled:text-slate-400"
-              >
-                {cooldown > 0 ? `${cooldown} 秒后重发` : "重新发送"}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={resetToEmail}
+              className="mt-3 w-full text-center text-sm font-semibold text-slate-400 transition hover:text-indigo-600"
+            >
+              换邮箱
+            </button>
           ) : null}
 
           {stage === "password" ? (
@@ -308,7 +374,8 @@ export function AuthForm({
               type="button"
               onClick={() => {
                 setPassword("");
-                enterStage("email");
+                setStage("code");
+                resetNotice();
               }}
               className="mt-4 w-full text-center text-sm font-semibold text-slate-500 transition hover:text-indigo-600"
             >
