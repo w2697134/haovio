@@ -9,7 +9,8 @@ export const metadata = {
 const steps = [
   {
     title: "1. 先登录 ChatGPT",
-    body: "chatgpt.com 登录",
+    code: "https://chatgpt.com",
+    href: "https://chatgpt.com",
     image: "/images/session-guide/step-1-open-chatgpt.png",
     alt: "打开 ChatGPT 官网并登录账号",
     width: 942,
@@ -17,8 +18,9 @@ const steps = [
   },
   {
     title: "2. 打开 Session 地址",
-    body: "打开接口地址",
+    body: "把地址栏网址换成下面这个",
     code: "https://chatgpt.com/api/auth/session",
+    href: "https://chatgpt.com/api/auth/session",
     image: "/images/session-guide/step-2-open-session-url.png",
     alt: "在地址栏打开 ChatGPT Session 接口地址",
     width: 2560,
@@ -33,6 +35,24 @@ const steps = [
     height: 1017,
   },
 ];
+
+function ExternalLinkIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+    >
+      <path d="M7 17 17 7" />
+      <path d="M9 7h8v8" />
+    </svg>
+  );
+}
 
 export default function SessionGuidePage() {
   return (
@@ -53,11 +73,19 @@ export default function SessionGuidePage() {
             <article key={step.title} className="rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-4">
                 <h2 className="text-xl font-black text-[var(--foreground)]">{step.title}</h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{step.body}</p>
+                {step.body ? <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{step.body}</p> : null}
                 {step.code ? (
-                  <code className="mt-3 block overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 font-mono text-sm text-[var(--foreground)]">
-                    {step.code}
-                  </code>
+                  <a
+                    href={step.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 flex min-h-11 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--foreground)] transition hover:border-[var(--primary)]"
+                  >
+                    <span className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-sm">{step.code}</span>
+                    <span className="text-[var(--muted)]">
+                      <ExternalLinkIcon />
+                    </span>
+                  </a>
                 ) : null}
               </div>
               <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)]">

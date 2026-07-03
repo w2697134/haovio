@@ -56,6 +56,11 @@ export function SmsActivationRedeemForm({
   const serviceCode = SMS_ACTIVATION_SERVICES[0].code;
   const countryCode = SMS_ACTIVATION_COUNTRIES[0].code;
   const operatorCode = SMS_ACTIVATION_OPERATORS[0].code;
+  const orderLabel = order ? `订单 ${order.id.slice(-8).toUpperCase()}` : "订单待生成";
+  const statusLabel =
+    !order ? "待购买" : order.status === "ACTIVE" ? "等待短信" : order.status === "RECEIVED" ? "已收到" : order.status;
+  const phoneText = order?.phone ?? "购买后自动显示";
+  const smsText = order?.smsCode ?? (order ? "等待验证码" : "购买后自动显示");
 
   useEffect(() => {
     if (!order || order.status !== "ACTIVE") return;
@@ -146,103 +151,114 @@ export function SmsActivationRedeemForm({
         </div>
       </div>
 
-      <div className="rounded-xl border border-[var(--primary)] bg-indigo-50 p-4 text-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="font-bold text-[var(--foreground)]">越南 OpenAI 接码</div>
-            <div className="mt-1 text-[var(--muted)]">系统自动买号，收到短信后自动显示验证码。</div>
+      <div className="rounded-xl border border-[var(--border)] bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-lg font-black text-[var(--foreground)]">{orderLabel}</div>
+          <span
+            className={
+              "rounded-full px-3 py-1 text-xs font-black " +
+              (order?.status === "RECEIVED"
+                ? "bg-emerald-50 text-emerald-700"
+                : order
+                  ? "bg-amber-50 text-amber-700"
+                  : "bg-[var(--surface-2)] text-[var(--muted)]")
+            }
+          >
+            {statusLabel}
+          </span>
+        </div>
+
+        <div className="space-y-3 text-sm">
+          <div className="grid grid-cols-[72px_1fr] items-center gap-3">
+            <div className="font-bold text-[var(--muted)]">服务</div>
+            <div className="font-black text-[var(--foreground)]">OpenAI / ChatGPT</div>
           </div>
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[var(--primary)]">全自动</span>
+          <div className="grid grid-cols-[72px_1fr] items-center gap-3">
+            <div className="font-bold text-[var(--muted)]">国家</div>
+            <div className="font-black text-[var(--foreground)]">越南</div>
+          </div>
+          <div className="grid grid-cols-[72px_1fr] items-center gap-3">
+            <div className="font-bold text-[var(--muted)]">方式</div>
+            <div className="font-black text-[var(--foreground)]">自动买号 · 自动取码</div>
+          </div>
         </div>
-        <div className="mt-3 border-t border-indigo-100 pt-3 text-xs leading-5 text-[var(--muted)]">
-          适合 OpenAI / ChatGPT 验证。提交后请在有效期内使用号码，验证码会在本页自动刷新。
+
+        <div className="mt-4 space-y-3">
+          <div>
+            <div className="mb-2 text-sm font-bold text-[var(--muted)]">手机号</div>
+            <div className="flex overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)]">
+              <div
+                className={
+                  "flex min-h-12 flex-1 items-center justify-center px-3 text-center font-mono text-lg font-black " +
+                  (order?.phone ? "text-[var(--foreground)]" : "text-slate-400")
+                }
+              >
+                {phoneText}
+              </div>
+              <button
+                type="button"
+                onClick={() => order?.phone && copy(order.phone, "phone")}
+                disabled={!order?.phone}
+                className="w-20 bg-sky-500 text-sm font-black text-white disabled:bg-slate-300"
+              >
+                {copied === "phone" ? "已复制" : "复制"}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-2 text-sm font-bold text-[var(--muted)]">短信</div>
+            <div className="flex overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)]">
+              <div
+                className={
+                  "flex min-h-12 flex-1 items-center justify-center px-3 text-center font-mono text-lg font-black " +
+                  (order?.smsCode ? "text-emerald-700" : "text-slate-400")
+                }
+              >
+                {smsText}
+              </div>
+              <button
+                type="button"
+                onClick={() => order?.smsCode && copy(order.smsCode, "code")}
+                disabled={!order?.smsCode}
+                className="w-20 bg-sky-500 text-sm font-black text-white disabled:bg-slate-300"
+              >
+                {copied === "code" ? "已复制" : "复制"}
+              </button>
+            </div>
+            {order?.smsText ? <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{order.smsText}</div> : null}
+          </div>
         </div>
+
+        <p className="mt-4 rounded-xl bg-sky-50 px-3 py-2 text-center text-xs leading-5 text-[var(--muted)]">
+          提交后保持本页打开，验证码会自动刷新；手机号用于 OpenAI / ChatGPT 验证。
+        </p>
+
+        {activeOrder ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => patchOrder("cancel")}
+              disabled={actionLoading || order.status === "RECEIVED"}
+              className="rounded-xl border border-rose-200 px-4 py-3 text-sm font-bold text-rose-600 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              取消并退款
+            </button>
+            <button
+              type="button"
+              onClick={() => patchOrder("finish")}
+              disabled={actionLoading || !order.smsCode}
+              className="btn-primary py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              完成订单
+            </button>
+          </div>
+        ) : null}
       </div>
 
-      {order ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-semibold text-[var(--muted)]">订单状态</div>
-              <div className="mt-1 text-lg font-black text-[var(--foreground)]">
-                {order.status === "ACTIVE" ? "等待验证码" : order.status === "RECEIVED" ? "已收到验证码" : order.status}
-              </div>
-            </div>
-            {order.expiresAt ? (
-              <div className="text-right text-xs font-semibold text-[var(--muted)]">
-                到期 {new Date(order.expiresAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
-              </div>
-            ) : null}
-          </div>
-
-          {order.phone ? (
-            <div className="mt-4 rounded-lg bg-[var(--surface-2)] p-3">
-              <div className="text-xs font-semibold text-[var(--muted)]">手机号</div>
-              <div className="mt-1 flex items-center justify-between gap-3">
-                <div className="font-mono text-xl font-black text-[var(--foreground)]">{order.phone}</div>
-                <button
-                  type="button"
-                  onClick={() => copy(order.phone!, "phone")}
-                  className="rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-bold text-slate-700"
-                >
-                  {copied === "phone" ? "已复制" : "复制"}
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {order.smsCode ? (
-            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-              <div className="text-xs font-semibold text-emerald-700">验证码</div>
-              <div className="mt-1 flex items-center justify-between gap-3">
-                <div className="font-mono text-2xl font-black text-emerald-800">{order.smsCode}</div>
-                <button
-                  type="button"
-                  onClick={() => copy(order.smsCode!, "code")}
-                  className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-700"
-                >
-                  {copied === "code" ? "已复制" : "复制"}
-                </button>
-              </div>
-              {order.smsText ? <div className="mt-2 text-xs text-emerald-700">{order.smsText}</div> : null}
-            </div>
-          ) : (
-            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-700">
-              系统每 5 秒自动刷新一次短信。
-            </div>
-          )}
-
-          {activeOrder ? (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => patchOrder("cancel")}
-                disabled={actionLoading || order.status === "RECEIVED"}
-                className="rounded-xl border border-rose-200 px-4 py-3 text-sm font-bold text-rose-600 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                取消并退款
-              </button>
-              <button
-                type="button"
-                onClick={() => patchOrder("finish")}
-                disabled={actionLoading || !order.smsCode}
-                className="btn-primary py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                完成订单
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {result ? (
+      {result && !result.ok ? (
         <div
-          className={
-            "rounded-lg border p-3 text-sm font-semibold " +
-            (result.ok
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-rose-200 bg-rose-50 text-rose-700")
-          }
+          className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700"
         >
           {result.message}
         </div>
