@@ -33,6 +33,7 @@ model User {
   pointLedgers  PointLedger[]
   pointRedeems  PointRedeem[]
   pointPurchaseOrders PointPurchaseOrder[]
+  smsActivationOrders SmsActivationOrder[]
   emailVerificationCodes EmailVerificationCode[]
 }
 
@@ -121,6 +122,7 @@ model ProductVariant {
 
   orderItems   OrderItem[]
   pointRedeems PointRedeem[]
+  smsActivationOrders SmsActivationOrder[]
 }
 
 model Order {
@@ -278,4 +280,36 @@ model PointPurchaseOrder {
   @@index([userId, createdAt])
   @@index([status, expiresAt])
   @@index([providerOrderId])
+}
+
+model SmsActivationOrder {
+  id              String    @id @default(cuid())
+  status          String    @default("BUYING") // BUYING | ACTIVE | RECEIVED | FINISHED | CANCELLED | FAILED | EXPIRED
+  productName     String
+  variantName     String
+  pointsCost      Int
+  serviceCode     String    @default("openai")
+  countryCode     String    @default("usa")
+  operatorCode    String    @default("any")
+  provider        String    @default("5SIM")
+  providerOrderId String?   @unique
+  phone           String?
+  smsCode         String?
+  smsText         String?
+  providerPayload String    @default("{}")
+  error           String?
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
 }

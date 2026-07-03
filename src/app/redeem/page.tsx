@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { BackButton } from "@/components/BackButton";
 import { PointProductRedeemForm } from "@/components/PointProductRedeemForm";
+import { SmsActivationRedeemForm } from "@/components/SmsActivationRedeemForm";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { pointsForPrice } from "@/lib/points";
@@ -43,6 +44,8 @@ export default async function RedeemPage({
     settings.contacts.find((contact) => contact.platform === "QQ群") ??
     settings.contacts.find((contact) => contact.platform === "QQ");
   const allowsSessionDelivery = allowsSessionDeliveryForProduct(variant.product);
+  const pointsCost = pointsForPrice(variant.price);
+  const isSmsActivation = variant.product.slug === "sms-activation";
 
   return (
     <div className="relative px-4 py-10">
@@ -53,15 +56,25 @@ export default async function RedeemPage({
       </div>
 
       <div className="mx-auto max-w-3xl">
-        <PointProductRedeemForm
-          variantId={variant.id}
-          productName={variant.product.name}
-          variantName={variant.name}
-          pointsCost={pointsForPrice(variant.price)}
-          balance={user.pointsBalance}
-          supportContact={supportContact}
-          allowsSessionDelivery={allowsSessionDelivery}
-        />
+        {isSmsActivation ? (
+          <SmsActivationRedeemForm
+            variantId={variant.id}
+            productName={variant.product.name}
+            variantName={variant.name}
+            pointsCost={pointsCost}
+            balance={user.pointsBalance}
+          />
+        ) : (
+          <PointProductRedeemForm
+            variantId={variant.id}
+            productName={variant.product.name}
+            variantName={variant.name}
+            pointsCost={pointsCost}
+            balance={user.pointsBalance}
+            supportContact={supportContact}
+            allowsSessionDelivery={allowsSessionDelivery}
+          />
+        )}
       </div>
     </div>
   );
