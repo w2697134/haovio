@@ -24,8 +24,11 @@ const STATUS_CLASS: Record<string, string> = {
   PROCESSING: "bg-sky-50 text-sky-700",
   COMPLETED: "bg-emerald-50 text-emerald-700",
   INFO_INVALID: "bg-rose-50 text-rose-700",
-  VOID: "bg-slate-100 text-slate-600",
+  VOID: "bg-slate-800 text-white",
 };
+
+const LOCKED_BUTTON_CLASS =
+  "border-slate-700 bg-slate-700 text-slate-200 hover:bg-slate-700 hover:text-slate-200 disabled:opacity-100";
 
 export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
   const router = useRouter();
@@ -136,6 +139,7 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
   const deliveryText = isSessionDelivery ? "Session提交" : "人工交付";
   const createdAt = new Date(redeem.createdAt).toLocaleString("zh-CN");
   const shortId = redeem.id.length > 14 ? `${redeem.id.slice(0, 14)}...` : redeem.id;
+  const isLocked = redeem.status === "VOID";
 
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-white px-5 py-4 shadow-sm">
@@ -166,31 +170,41 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
               详情
             </button>
             <button
-              disabled={loading}
+              disabled={loading || isLocked}
               onClick={() => patch({ status: "PROCESSING" })}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${
+                isLocked
+                  ? LOCKED_BUTTON_CLASS
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+              }`}
             >
               处理
             </button>
             <button
-              disabled={loading}
+              disabled={loading || isLocked}
               onClick={() => patch({ status: "INFO_INVALID" })}
-              className="rounded-lg border border-rose-100 px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${
+                isLocked ? LOCKED_BUTTON_CLASS : "border-rose-100 text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+              }`}
             >
               有误
             </button>
             <button
-              disabled={loading}
+              disabled={loading || isLocked}
               onClick={() => patch({ status: "COMPLETED" })}
-              className="rounded-lg border border-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50"
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${
+                isLocked ? LOCKED_BUTTON_CLASS : "border-emerald-100 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+              }`}
             >
               完成
             </button>
             <button
               type="button"
-              disabled={loading || redeem.status === "VOID"}
+              disabled={loading || isLocked}
               onClick={refundRedeem}
-              className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-amber-100 px-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-50 disabled:opacity-50"
+              className={`inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition disabled:cursor-not-allowed ${
+                isLocked ? LOCKED_BUTTON_CLASS : "border-amber-100 text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+              }`}
               title="作废并退回余额"
             >
               <UndoIcon className="h-4 w-4" />
@@ -287,16 +301,42 @@ export function PointRedeemRow({ redeem }: { redeem: AdminPointRedeem }) {
             ) : null}
 
             <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
-              <button disabled={loading} onClick={() => patch({ status: "PROCESSING" })} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
+              <button
+                disabled={loading || isLocked}
+                onClick={() => patch({ status: "PROCESSING" })}
+                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${
+                  isLocked
+                    ? LOCKED_BUTTON_CLASS
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                }`}
+              >
                 处理中
               </button>
-              <button disabled={loading} onClick={() => patch({ status: "INFO_INVALID" })} className="rounded-lg border border-rose-100 px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50">
+              <button
+                disabled={loading || isLocked}
+                onClick={() => patch({ status: "INFO_INVALID" })}
+                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${
+                  isLocked ? LOCKED_BUTTON_CLASS : "border-rose-100 text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                }`}
+              >
                 信息有误
               </button>
-              <button disabled={loading} onClick={() => patch({ status: "COMPLETED" })} className="rounded-lg border border-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50">
+              <button
+                disabled={loading || isLocked}
+                onClick={() => patch({ status: "COMPLETED" })}
+                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${
+                  isLocked ? LOCKED_BUTTON_CLASS : "border-emerald-100 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+                }`}
+              >
                 完成
               </button>
-              <button disabled={loading || redeem.status === "VOID"} onClick={refundRedeem} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-100 px-3 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-50 disabled:opacity-50">
+              <button
+                disabled={loading || isLocked}
+                onClick={refundRedeem}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${
+                  isLocked ? LOCKED_BUTTON_CLASS : "border-amber-100 text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                }`}
+              >
                 <UndoIcon className="h-4 w-4" />
                 退回
               </button>

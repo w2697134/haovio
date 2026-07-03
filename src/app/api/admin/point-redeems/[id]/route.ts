@@ -92,6 +92,9 @@ export async function PATCH(
 
   const redeem = await prisma.pointRedeem.findUnique({ where: { id } });
   if (!redeem) return NextResponse.json({ error: "订单不存在" }, { status: 404 });
+  if (redeem.status === "VOID" && data.status) {
+    return NextResponse.json({ error: "退回订单已锁定，不能修改状态" }, { status: 400 });
+  }
 
   const now = new Date();
   const updateData: {
