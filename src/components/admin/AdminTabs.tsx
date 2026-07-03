@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { href: "/admin", label: "总订单" },
   { href: "/admin/pending", label: "待处理" },
+  { href: "/admin/products", label: "商品" },
+  { href: "/admin/questions", label: "问题" },
   { href: "/admin/settings", label: "设置" },
 ];
 

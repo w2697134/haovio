@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { SessionUser } from "@/lib/auth";
 import { formatCnyBalance } from "@/lib/money";
@@ -16,10 +16,13 @@ type IconName =
   | "gift"
   | "admin"
   | "orders"
+  | "products"
+  | "questions"
   | "login"
   | "chevronDown"
   | "copy"
   | "settings"
+  | "plusCircle"
   | "logout";
 
 function NavIcon({ name }: { name: IconName }) {
@@ -91,6 +94,22 @@ function NavIcon({ name }: { name: IconName }) {
           <path d="M9 8h6M9 12h6M9 16h4" />
         </svg>
       );
+    case "products":
+      return (
+        <svg {...common}>
+          <path d="M21 8.5 12 3 3 8.5l9 5.5 9-5.5Z" />
+          <path d="M3 8.5V16l9 5 9-5V8.5" />
+          <path d="M12 14v7" />
+        </svg>
+      );
+    case "questions":
+      return (
+        <svg {...common}>
+          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          <path d="M9.8 9a2.4 2.4 0 0 1 4.4 1.3c0 1.7-2.2 2-2.2 3.7" />
+          <path d="M12 17h.01" />
+        </svg>
+      );
     case "login":
       return (
         <svg {...common}>
@@ -116,6 +135,14 @@ function NavIcon({ name }: { name: IconName }) {
         <svg {...common}>
           <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
           <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 1 1.5h.1a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.5 1Z" />
+        </svg>
+      );
+    case "plusCircle":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v8" />
+          <path d="M8 12h8" />
         </svg>
       );
     case "logout":
@@ -237,10 +264,145 @@ function AccountMenu({ user, active = false }: { user: SessionUser; active?: boo
   );
 }
 
+const adminLinks = [
+  { href: "/admin", label: "后台", icon: "admin" as const },
+  { href: "/admin/pending", label: "待处理", icon: "orders" as const },
+  { href: "/admin/products", label: "商品", icon: "products" as const },
+  { href: "/admin/questions", label: "问题", icon: "questions" as const },
+  { href: "/admin/settings", label: "设置", icon: "settings" as const },
+];
+
+function AdminQuickBar({ onAdjust }: { onAdjust: () => void }) {
+  const pathname = usePathname();
+
+  return (
+    <div className="border-t border-slate-200/70 bg-white/70 px-3 py-2 backdrop-blur sm:px-5">
+      <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto">
+        {adminLinks.map((item) => {
+          const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition ${
+                active
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950"
+              }`}
+            >
+              <NavIcon name={item.icon} />
+              {item.label}
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={onAdjust}
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 px-3 text-sm font-semibold text-indigo-700 transition hover:border-indigo-200 hover:bg-indigo-100"
+        >
+          <NavIcon name="plusCircle" />
+          发余额
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AdminBalanceModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const router = useRouter();
+  const [target, setTarget] = useState("");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  if (!open) return null;
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (loading) return;
+    setLoading(true);
+    setMessage("");
+    setError("");
+    try {
+      const res = await fetch("/api/admin/users/balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target, amount, note }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "操作失败");
+        return;
+      }
+      setMessage(`已更新 ${data.user.email} · ${formatCnyBalance(data.user.pointsBalance)}`);
+      setTarget("");
+      setAmount("");
+      setNote("");
+      emitClientEvent("balanceChanged");
+      router.refresh();
+    } catch {
+      setError("网络错误");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/35 px-4 py-6">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-black text-slate-950">发余额</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-950"
+            aria-label="关闭"
+          >
+            ×
+          </button>
+        </div>
+        <div className="space-y-3">
+          <input
+            value={target}
+            onChange={(event) => setTarget(event.target.value)}
+            className="input h-11"
+            placeholder="用户ID / 邮箱"
+          />
+          <input
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            className="input h-11"
+            placeholder="金额"
+            inputMode="decimal"
+          />
+          <input
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            className="input h-11"
+            placeholder="备注"
+          />
+        </div>
+        {error ? <p className="mt-3 text-sm font-semibold text-rose-600">{error}</p> : null}
+        {message ? <p className="mt-3 text-sm font-semibold text-emerald-600">{message}</p> : null}
+        <button
+          type="submit"
+          disabled={loading}
+          className="mt-4 h-11 w-full rounded-xl bg-slate-950 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+        >
+          {loading ? "处理中" : "确认"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export function Header({ user, balance = 0 }: { user: SessionUser | null; balance?: number }) {
   const pathname = usePathname();
   const router = useRouter();
   const [loginOpen, setLoginOpen] = useState(false);
+  const [adminBalanceOpen, setAdminBalanceOpen] = useState(false);
 
   useEffect(() => {
     function openLoginModal() {
@@ -344,7 +506,11 @@ export function Header({ user, balance = 0 }: { user: SessionUser | null; balanc
           </button>
         </div>
       </div>
+      {user?.role === "ADMIN" ? <AdminQuickBar onAdjust={() => setAdminBalanceOpen(true)} /> : null}
       {!user ? <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} /> : null}
+      {user?.role === "ADMIN" ? (
+        <AdminBalanceModal open={adminBalanceOpen} onClose={() => setAdminBalanceOpen(false)} />
+      ) : null}
     </header>
   );
 }
